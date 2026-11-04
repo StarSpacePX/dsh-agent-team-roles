@@ -15,7 +15,7 @@ kind: "package-reference"
 | 角色即 preset | 每个角色通过公开服务 `ctx.agentPresets.register()` 注册成一枚独立 preset，与内置的 `standard` / `cordis` / `ptc` / `minimal` 并列 |
 | 开关式配置面板 | 过滤、只看被改过的行、整类三态开关、分类折叠；一次手势合并成一条批量请求 |
 | 只引用，不新增 | 角色的能力行来自部署**当前**的预设，角色只改已有行的 `disabled` 与 `config`，不凭空造行 |
-| 技能按角色选用 | 技能行的开关与顺序按角色存，宿主半一次装配 |
+| 技能按角色选用 | 技能行的开关与顺序按角色存，宿主侧一次装配 |
 | MCP 开关 | 关掉 = 该角色的 agent 看不到那台 MCP 服务器的工具（可见性过滤，不是再起连接） |
 | 启用团队与成员绑定 | `set-team` 打开团队运行时，`bindMembers` 把新建成员绑到同名角色 |
 | 会话页签「群聊」 | 不切会话聚合全员消息流，只读投影，不依赖任何外部数据库 |
@@ -27,7 +27,7 @@ kind: "package-reference"
 dsh plugin --profile web add github:StarSpacePX/dsh-agent-team-roles
 ```
 
-然后**重启 dsh**。宿主半的新代码只在新进程里存在，热加载只覆盖客户端半。
+然后**重启 dsh**。宿主侧的新代码只在新进程里存在，热加载只覆盖客户端侧。
 
 这条命令会把插件装进 profile 并**自动补进 `dsh.profile.bundles`**（不需要手工编辑 profile 的
 `package.json`）。⚠️ 用 git 地址安装时，pnpm 默认阻止安装期构建脚本，报错里会打印要写进
@@ -39,7 +39,7 @@ dsh plugin --profile web add github:StarSpacePX/dsh-agent-team-roles
 dsh plugin --profile web add link:D:/path/to/dsh-agent-team-roles
 ```
 
-装完确认：`GET /state` 里有没有 `team` 段 —— 有就说明宿主半是新代码。
+装完确认：`GET /state` 里有没有 `team` 段 —— 有就说明宿主侧是新代码。
 
 ## 快速开始
 
