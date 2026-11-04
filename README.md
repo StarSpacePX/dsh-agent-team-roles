@@ -12,9 +12,9 @@ kind: "package-reference"
 
 | 能力 | 一句话 |
 | --- | --- |
-| 角色即 preset | 每个角色通过公开服务 `ctx.agentPresets.register()` 注册成一枚独立 preset，与内置的 `standard` / `cordis` / `ptc` / `minimal` 并列 |
+| 角色即 preset | 每个角色注册成一枚独立 preset，与内置的 `standard` / `cordis` / `ptc` / `minimal` 并列 |
 | 开关式配置面板 | 过滤、只看被改过的行、整类三态开关、分类折叠；一次手势合并成一条批量请求 |
-| 只引用，不新增 | 角色的能力行来自部署**当前**的预设，角色只改已有行的 `disabled` 与 `config`，不凭空造行 |
+| 只引用，不新增 | 角色的能力行来自部署**当前**的预设，角色只改已有行，不凭空造行 |
 | 技能按角色选用 | 技能行的开关与顺序按角色存，宿主侧一次装配 |
 | MCP 开关 | 关掉 = 该角色的 agent 看不到那台 MCP 服务器的工具（可见性过滤，不是再起连接） |
 | 启用团队与成员绑定 | `set-team` 打开团队运行时，`bindMembers` 把新建成员绑到同名角色 |
@@ -58,7 +58,7 @@ dsh plugin --profile web add link:D:/path/to/dsh-agent-team-roles
 | `dir` | `null` | 角色数据目录；留空 = `<DSH_HOME>/agent-team-roles` |
 | `prefix` | `"team-"` | 新建角色时 preset id 的前缀，避免与内置 preset 撞名 |
 | `bindMembers` | `false` | 强制打开成员绑定；**改了要重启 dsh** |
-| `home` | `null` | dsh home 注入点，主要给测试用，普通用户留空 |
+| `home` | `null` | dsh 数据根目录；一般留空，走 `DSH_HOME` 或 `~/.dsh` |
 
 ```yaml
 # <DSH_HOME>/profiles/web/cordis.patch.yml
@@ -83,13 +83,10 @@ config:
 
 ## 边界与已知限制
 
-- **只延伸官方接口。** 角色注册走官方 `ctx.agentPresets.register`；`agents.create` / `agents.resume`
-  那一层包了一层（严格说是猴补丁），但只改写 `setup`（`lib/host/bind.js`），其余字段原样展开并落回原函数。
-- **成员创建失败会永久占用名字。** 这是 dsh 本体的缺陷（登记先于创建、失败只留档不回滚），插件侧修不了。
-  缓解方式是控制并发，以及失败后不要改名重试。
-- **群聊页签是只读投影**，没有输入框；要发消息走 `@成员` 或工具。
-- **写配置类改动要重启宿主侧**，热加载只覆盖客户端侧。
-- 没有逐行 config 编辑器：面板只做开关，行名 tooltip 里能看到 config。
+- **成员创建失败会永久占用这个名字**：这是 dsh 本体的限制，插件修不了。控制并发，失败后别改名重试。
+- **群聊页签是只读的**，没有输入框；要发消息走 `@成员` 或工具。
+- **写配置类的改动要重启 dsh**，界面只刷新页面即可。
+- 面板只做开关，没有逐行 config 编辑器；行名悬停能看到该行的 config。
 
 ## 开发
 
