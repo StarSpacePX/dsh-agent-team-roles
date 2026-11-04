@@ -1,12 +1,19 @@
 # 市场收录条目（提 PR 用，不是本仓的运行文件）
 #
-# 提交方式：fork https://github.com/awesome-dsh-plugin/awesome-dsh-plugin
-#         新增文件 data/plugins/StarSpacePX__dsh-agent-team-roles.yml
-#         内容照抄下面这份（去掉注释）
+# 现状（2026-11-04 22:40 本地）：
+#   - 已 fork：StarSpacePX/awesome-dsh-plugin
+#   - 已建分支：add-starspacepx-dsh-agent-team-roles（commit abaf434，文件已放好）
+#   - 只差开 PR：仓库创建于 2026-11-04T13:06Z，CI 的 MIN_AGE_DAYS=1，
+#     最早可提时间 = 2026-11-05T13:06Z（本地 11-05 21:06 之后）
+#
+# 开 PR 就是一条：
+#   POST https://api.github.com/repos/awesome-dsh-plugin/awesome-dsh-plugin/pulls
+#   { "title": "Add StarSpacePX/dsh-agent-team-roles",
+#     "head": "StarSpacePX:add-starspacepx-dsh-agent-team-roles", "base": "main" }
 #
 # 硬性前置（CI 会查）：
-#   1. 仓库创建满 1 天
-#   2. 仓库有 `dsh-plugin` topic（settings 页 → Topics）
+#   1. 仓库创建满 1 天 ← 唯一未满足项
+#   2. 仓库有 `dsh-plugin` topic（已加：dsh-plugin / deepseek-harness / agent-team）
 #   3. package.json 里有 dsh.bundle（本仓已有：dsh.bundle.patch = ./cordis.patch.yml）
 #   4. 一个 PR 最多 3 条条目
 
