@@ -1,18 +1,5 @@
-// 共享的浏览器端测试运行时 —— p0-client.test.mjs 与 p1-client.test.mjs 共用。
-//
-// 为什么是行为测试而不是源码正则断言：B1 的病根在 effect 的依赖数组（对象引用
-// 每次回包都变），B2 在异步时序，E1/E2/E3 在超时、并发与缺字段兜底。正则断言只
-// 能证明「代码里写着某句话」，证明不了「用户看到的东西变了」。所以这里把
-// lib/client.js 真的装进 vm 求值，用一个极简 React 运行时真渲染面板、真改输入框、
-// 真点按钮、真拦截 fetch。
-//
-// 这一份是从两个测试文件里合并出来的：它们曾各自抄了一份 createRuntime / walk /
-// textOf / row / role / secondRole / statePayload / mountPanel，非空行有 481 行
-// 逐字相同。合并以 p1 的版本为超集（多了定时器压缩、AbortController、scope 计数），
-// 再把 p0 独有的 probeSwitchCheckbox / clickSwitchCheckbox / reloadWith 一并挂到 panel 上。
-//
-// 夹具是手写的合成数据，字段名逐个对齐 3099 真机 /state 回包（见
-// Docs/teams 下的运行时实测与批次实施记录），不含任何本机路径。
+/** 共享的浏览器端测试运行时：把 lib/client.js 真的装进 vm 求值，用极简 React 运行时
+ * 真渲染面板、真改输入框、真点按钮、真拦 fetch。 */
 
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'

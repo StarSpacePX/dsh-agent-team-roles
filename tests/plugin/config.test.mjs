@@ -1,8 +1,5 @@
-/**
- * 配置说明书与批量开关（§5.34 notes.json 是数据 / §5.39 set-switches 一次手势一个请求）
- *
- * 来源：`tests/plugin/team-and-config.test.mjs`（745 行，超 400 行红线）。用例体逐字未改。
- */
+/** 配置说明书与批量开关（notes.json 是数据 / set-switches 一次手势一个请求）。
+ * 从 tests/plugin/team-and-config.test.mjs 拆出（超 400 行红线），用例体逐字未改。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile, writeFile } from 'node:fs/promises'
@@ -79,19 +76,13 @@ test('export-notes writes every key once, and never overwrites an edited one', a
   })
 })
 
-/**
- * The text of the argument list opening at `source[open] === '('`.
- *
- * Balanced-paren scan, quote aware — enough for this file, whose calls only
- * hold string literals and other calls.
- */
+/** 从 source[open] === '(' 开始的实参文本。
+ * 括号配平、跳过引号，够这个文件用（实参只有字符串字面量与其它调用）。 */
 
 test('every explanation the client asks for by key exists in the defaults', async () => {
-  // 客户端把说明写成 `describe('key', fallback)` / `info('key', fallback)` /
-  // `section('标题', 'key', fallback)`。一个拼错、或者只存在于某一侧的 key，
-  // 会在运行时**静默**退回 fallback：不报错、只是用户再也没法在 notes.json 里
-  // 改那句话（`context` / `workdir` / `mode` 就这么漏过一次）。
-  // 所以这里把客户端真正问到的 key 全部抓出来，和默认值对一遍。
+// 客户端把说明写成 describe('key', fallback) / info('key', fallback) / section('标题', 'key', fallback)。
+// 拼错、或只存在于某一侧的 key 会在运行时静默退回 fallback：不报错，只是用户再也没法在 notes.json 里改那句话。
+// 所以这里把客户端真正问到的 key 全部抓出来，和默认值对一遍。
   const source = await readFile(new URL('../../lib/client.js', import.meta.url), 'utf8')
   const used = new Set()
   const patterns = [
@@ -107,9 +98,8 @@ test('every explanation the client asks for by key exists in the defaults', asyn
   const missing = [...used].filter((key) => !NOTE_KEYS.includes(key))
   assert.deepEqual(missing, [], `这些 key 不在 notes.js 的默认值里：${missing.join(' / ')}`)
 
-  // 另一半契约：`note()` 只拼**字符串**（非字符串会被静默丢掉），`section()`
-  // 的第三参也必须是字符串。所以 `info()`（返回的是元素）只能挂在树里，
-  // 不能塞进 `note()` / `section()` —— 塞了的话那一段 ⓘ 会整个消失。
+// 另一半契约：note() 只拼字符串（非字符串会被静默丢掉），section() 第三参也必须是字符串。
+// 所以 info()（返回的是元素）只能挂在树里，塞进 note() / section() 会让那段 ⓘ 整个消失。
   for (const name of ['note', 'section']) {
     for (const match of source.matchAll(new RegExp(`\\b${name}\\(`, 'g'))) {
       const args = argumentText(source, match.index + match[0].length - 1)
@@ -123,13 +113,9 @@ test('every explanation the client asks for by key exists in the defaults', asyn
 
 //#region §5.39 — 批量开关：一次手势一个请求（用户 m09376「批量 action必须做」）
 
-/**
- * The whole point of `set-switches`: N rows in, **one** preset rebuild out.
- *
- * A rebuild is what the registry records — an apply disposes the previous mount
- * and registers a new one — so counting registrations is counting `sync()`
- * calls, and one batch has to add exactly one, however many rows it carries.
- */
+/** set-switches 的要点：N 行进、**一次**预设重建出。
+ * 重建是注册表记录的动作（apply 拆掉旧挂载、注册新的），所以数注册次数就是数 sync() 调用，
+ * 一批无论带多少行都只能多一次。 */
 
 test('set-switches lands a whole gesture in one request, and rebuilds presets once', async () => {
   await withHome(async (home) => {
@@ -156,8 +142,7 @@ test('set-switches lands a whole gesture in one request, and rebuilds presets on
         assert.deepEqual(batch.json.rows, rows.map((row) => row.id))
         assert.deepEqual(batch.json.mcp, ['github'])
 
-        // The reply is the new truth: every row in the batch is on and carries an
-        // override, every row that was *not* named is untouched.
+// 回包就是新真相：批次里每一行都开着并带 override，没被点名的行一个不动。
         const next = batch.json.state.roles.find((entry) => entry.id === 'team-reviewer')
         for (const row of rows) {
           const after = next.rows.find((entry) => entry.id === row.id)

@@ -1,4 +1,4 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // 模式面板。
 
 import { describe, note, section } from './../notes.js';
@@ -7,17 +7,14 @@ import { styles } from './../styles.js';
 
 function ModePanel({ role, modes, busy, onSet }) {
   const list = Array.isArray(modes) && modes.length > 0 ? modes : null;
-  // 用户 m07126/m07129：**默认选中「这条角色实际挂的预设」**（= 它自己那份复制品，
-  // `/state` 里叫 `role.presetId`），不是模板（`role.mode`）。只显示模板会让「看到 user、
-  // 实际挂的是复制品」这件事变成骗人的显示。
+// 默认选中「这条角色实际挂的预设」（= 它自己那份复制品，/state 里叫 role.presetId），
+// 不是模板（role.mode）。只显示模板会让「看到 user、实际挂的是复制品」变成骗人的显示。
   const actual = typeof role.presetId === 'string' && role.presetId !== '' ? role.presetId : '';
   const listed = list !== null && actual !== '' && list.some((mode) => mode.id === actual);
   const current = listed ? actual : role.mode || 'standard';
   const known = list === null ? [] : list.map((mode) => mode.id);
-  // The role's own mode is always an option, even if the roster no longer
-  // offers it (the preset was deleted): a stored role must remain readable,
-  // and the value must not silently jump to another mode just by opening
-  // the panel.
+// 角色自己的模式永远是一个选项，哪怕 roster 已经不再提供它（预设被删）：
+// 已存盘的角色必须还能读，也不能只是打开面板就把值悄悄跳到别的模式。
   const options =
     list === null || known.includes(current)
       ? list
@@ -41,11 +38,10 @@ function ModePanel({ role, modes, busy, onSet }) {
     if (mode.available === false) return '这个模式现在组不出来：部署里没有它的预设声明。';
     return `直接读部署当前的预设声明${mode.rowCount === undefined ? '' : `（${mode.rowCount} 条顶层行）`}`;
   };
-  // 当前模式来自哪里（几行）——原来印的是快照文件路径，用户 m11753：「放到说明里面」，
-  // 于是收进「模式」标题旁的 ⓘ 说明里，行内不再显示。§5.62 起没有快照文件了：每一份
-  // 都是「直接读部署当前的预设声明」。
+// 当前模式从哪来：收进「模式」标题旁的 ⓘ 说明，行内不显示。
+// 没有快照文件了，每一份都是直接读部署当前的预设声明。
   const chosenSource = chosen === undefined ? '' : describeMode(chosen);
-  // 选中的是自己那份时，把模板单独说清楚：改模板会重建这份预设，但名字/身份不变。
+// 选中的是自己那份时，把模板单独说清楚：改模板会重建这份预设，但名字 / 身份不变。
   const templateNote = listed ? `模板：${role.modeLabel || role.mode}` : '';
 
   return h(
@@ -76,7 +72,7 @@ function ModePanel({ role, modes, busy, onSet }) {
       undefined,
       note(chosenSource, templateNote),
     ),
-    // 下拉框单独一行、撑满上限宽度（原来右边还挂着那串路径，见 `chosenSource`）。
+// 下拉框单独一行、撑满上限宽度。
     h(
       'select',
       {
@@ -95,7 +91,7 @@ function ModePanel({ role, modes, busy, onSet }) {
           {
             key: mode.id,
             value: mode.id,
-            // 别的角色的自有预设列出来是为了「看得见全部预设」，但不能拿来当模板。
+// 别的角色的自有预设列出来是为了「看得见全部预设」，但不能当模板。
             disabled: mode.available === false || (mode.source === 'role' && mode.id !== actual),
             title: describeMode(mode),
           },
@@ -106,19 +102,8 @@ function ModePanel({ role, modes, busy, onSet }) {
   );
 }
 
-/**
- * 「既然成员名称必须是英文，那你再给一行设置 id 不就行了」。
- *
- * A role's id *is* the member name plus the `team-` prefix, so without an
- * explicit id a Chinese role name falls back to a codepoint hash
- * (`team-rfozlm`) — an id
- * nobody can remember and nobody chose. The create row takes the id
- * directly; this normalizes what was typed so a stray character never
- * reaches the host (which would reject it anyway, with a longer message).
- *
- * @param {string} value what the user typed.
- * @param {string} prefix the plugin's preset prefix (`state.presetPrefix`).
- * @returns {string} the full role id, or '' when nothing usable was typed.
- */
+/** 「再给一行设置 id」：角色 id 就是成员名带 team- 前缀，
+ * 不显式给 id 时中文角色名会回落到码点哈希（team-rfozlm 这种没人记得的名字）。
+ * 新建行直接收 id，这里把输入规范化，杂字符到不了宿主（宿主会拒）。 */
 
 export { ModePanel };

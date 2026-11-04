@@ -1,12 +1,6 @@
 // 行数已经审批
-/**
- * Tests for the pure composition layer and the role store.
- *
- * Everything here runs against the bundled snapshots — the `standard` one by
- * default, the other three modes where the mode switch is what is being tested —
- * so the suite also doubles as an assertion that all four are present,
- * parseable, and still have the shape the UI expects.
- */
+/** 纯组合层与角色存储的测试。全部跑在仓库内的预设夹具上（默认 standard，测模式切换时用其它三个），
+ * 所以这套用例同时断言四份声明都在、可解析、形状符合 UI 预期。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -30,13 +24,8 @@ import { ID_PATTERN, RESERVED_IDS, RoleStore, normalizeRole } from '../lib/store
 import { ROLE_PALETTE, colorForRoleId, nextRoleColor } from '../lib/roleColor.js'
 import { buildDefinition, buildDefinitions, createRole, slugify, withInstructionHome } from '../lib/roles.js'
 
-/**
- * 出厂模式的顶层行（**测试夹具**）。
- *
- * §5.62 起插件不再自带快照：运行时从部署的 Loader 读预设声明，测试里没有部署，
- * 于是那四份声明放在 `tests/fixtures/presets/`。夹具停在抽取那天不影响这些断言：
- * 它们问的是「这份组合怎么被用」，不是「dsh 今天发了哪些行」。
- */
+/** 出厂模式的顶层行（测试夹具）。插件不再自带快照：运行时从部署的 Loader 读预设声明，
+ * 测试里没有部署，所以那四份声明放在 tests/fixtures/presets/。 */
 const loadTemplate = async (mode = DEFAULT_MODE) => {
   const id = normalizeMode(mode)
   return { source: { presetId: id, file: null, live: true }, plugins: shippedPreset(id).plugins }
@@ -72,9 +61,7 @@ test('categorize places the rows the requirements name', () => {
   assert.equal(categorize({ id: 'agent-loop' }), 'loop')
 })
 
-// The user's model is 「agents.md 就是身份描述和一些规则」 (m05741): a row whose
-// whole job is a line of the identity prompt is not a dimension of its own, so
-// `persona` shares the AGENTS.md group and no `identity` key exists any more.
+// 用户的模型是「AGENTS.md 就是身份描述和一些规则」：persona 归到 AGENTS.md 组，不再有 identity 键。
 test('persona is part of the AGENTS.md dimension, not an identity of its own', () => {
   assert.equal(categorize({ id: 'persona' }), 'agents-md')
   assert.equal(categorize({ id: 'persona', name: '@deepseek-ai/dsh-persona' }), 'agents-md')
@@ -98,10 +85,8 @@ test('every row id in the shipped fixture is unique, groups included', async () 
   const walk = (rows) => rows.flatMap((row) => [row.id, ...(Array.isArray(row.config) ? walk(row.config) : [])])
   const ids = walk(template.plugins)
 
-  // Roles address their overrides by *bare row id*, not by the `parent/child`
-  // path the UI displays, so a duplicate id would make two rows share one
-  // override. The snapshot is generated, so this asserts the generator's output
-  // rather than trusting it.
+// 角色的 override 按**裸行 id** 寻址，不是 UI 显示的 parent/child 路径；
+// 重复 id 会让两行共用一份 override，所以这里断言生成器的输出。
   assert.equal(new Set(ids).size, ids.length, `重复的行 id：${ids.filter((id, i) => ids.indexOf(id) !== i).join(', ')}`)
   assert.equal(ids.length, 32)
 })
@@ -131,17 +116,9 @@ test('composeRows keeps group children as rows of their group', async () => {
   assert.ok(delegation.config.some((row) => row.id === 'tool-subagent'))
 })
 
-// §5.53 — a role composition keeps `modelSelectionSettings: true` on
-// `dsh-tool-subagent`. The member is rebound to the role preset **inside the creation
-// window**, before its parent's `preset-standard` standing listener could install its
-// own copy, so `list_subagent_models` (a globally named tool, 「每个工具作用域内最多
-// 一个实例可以拥有模型选择」) has exactly one owner again.
-//
-// §5.52 used to defuse this flag at composition time because a member joined its
-// parent's preset first and dsh then refused the member with
-//   tool "list_subagent_models" is already registered in this scope
-// That cure cost every role member the sub-model catalog and the `subagent` tool's
-// `provider`/`model`/`reasoning_effort` arguments, so it is gone (§5.53).
+// 角色组合在 dsh-tool-subagent 上保留 modelSelectionSettings: true。
+// 成员在创建窗口里被重绑到角色预设，早于父级 preset-standard 的常驻监听装上自己那份，
+// 于是 list_subagent_models 这个全局具名工具又只有一个归属。
 test('composeRows keeps the globally named subagent catalog (§5.53)', async () => {
   const template = await loadTemplate()
   const raw = template.plugins
@@ -154,8 +131,7 @@ test('composeRows keeps the globally named subagent catalog (§5.53)', async () 
   const delegation = composeRows(template.plugins, 'win32').find((row) => row.id === 'delegation')
   const subagent = delegation.config.find((row) => row.id === 'tool-subagent')
 
-  // … and the composition leaves it alone, so a role member gets the same catalog as
-  // an official subagent. Everything else about the row still survives.
+// 组合不动它，所以角色成员拿到的模型目录与官方子代理一致；那一行的其它设置也照旧保留。
   assert.equal(subagent.config.modelSelectionSettings, true)
   assert.equal(subagent.config.toolName, 'subagent')
   assert.equal(subagent.config.provider, 'spawn')
@@ -201,8 +177,7 @@ test('describeRows flattens groups into parent/child paths', async () => {
   assert.ok(planning)
   assert.ok(planMode)
   assert.equal(planMode.parent, 'planning')
-  // `isolate` is a group-only declaration, and the UI reads it: the group header
-  // says which services run in a realm of their own. Children carry none.
+// isolate 是只有分组能声明的，UI 读它：组头会说哪些服务跑在独立 realm 里；子行没有。
   assert.deepEqual(planning.isolate, { planMode: true })
   assert.equal(planMode.isolate, null)
 })
@@ -288,8 +263,7 @@ test('a load-save cycle keeps the write stamps instead of dropping them', async 
     assert.equal(typeof createdAt, 'string')
     assert.equal(typeof updatedAt, 'string')
 
-    // A save triggered by *another* role must not erase them: the file has to be
-    // a fixpoint, otherwise every load-and-write silently rewrites the document.
+// 别的角色触发的保存不能把它们抹掉：文件必须是定点，否则每次 load-write 都偷偷重写文档。
     await reopened.upsert({ id: 'team-other', name: 'Other' })
     await reopened.remove('team-other')
 
@@ -315,8 +289,7 @@ test('RoleStore writes each role into its own directory and leaves no temp file'
     await store.load()
     await store.upsert({ id: 'team-a', name: 'A' })
 
-    // The role is a file of its own now — the index holds settings only, which
-    // is what makes "每个角色一个 json" true rather than cosmetic (§5.29).
+// 角色现在是自己一个文件，索引只放设置 —— 这才让「每个角色一个 json」真的成立。
     const text = await readFile(path.join(dir, 'team-a', 'role.json'), 'utf8')
     assert.equal(JSON.parse(text).id, 'team-a')
 
@@ -443,12 +416,8 @@ test('withInstructionHome respects a dshHome the role already declares', () => {
   const explicit = { 'agent-instructions': { config: { dshHome: 'D:\\shared' } } }
   assert.equal(withInstructionHome(explicit, 'C:\\roles\\team-architect')['agent-instructions'].config.dshHome, 'D:\\shared')
 
-  // `null` is applyConfig's "drop the key", i.e. "inherit the deployment's
-  // ~/.dsh". It names no directory, so it is not a deliberate choice of
-  // *somewhere else* — and letting it win injects the role's AGENTS.md twice,
-  // because the role directory lives under ~/.dsh and the upstream dedup only
-  // collapses files from the *same* directory
-  // (`…/dsh-agent-instructions/lib/index.js:632`).
+// null 是 applyConfig 的「删掉这个键」= 继承部署的 ~/.dsh，没有指名任何目录，不算「选了别处」。
+// 让它赢会把角色的 AGENTS.md 注入两遍：角色目录就在 ~/.dsh 下，上游去重只折叠同一目录的文件。
   const inherit = { 'agent-instructions': { config: { dshHome: null } } }
   assert.equal(
     withInstructionHome(inherit, 'C:\\roles\\team-architect')['agent-instructions'].config.dshHome,
@@ -464,10 +433,8 @@ test('buildDefinition wires the role directory into the composed preset', async 
   const definition = buildDefinition(role, template, 'win32', { dirOf: () => home })
   const row = definition.plugins.find((plugin) => plugin.id === 'agent-instructions')
 
-  // The row already existed in the snapshot; the role only adds `dshHome` to its
-  // config, which is what makes `dsh-agent-instructions` load `<roleDir>/AGENTS.md`
-  // whatever directory the task runs in (verified against the real package:
-  // `discoverBaselineInstructionFiles` returns it as `$DSH_HOME/AGENTS.md`).
+// 这一行快照里本来就有，角色只往 config 加 dshHome，于是 dsh-agent-instructions 加载 <roleDir>/AGENTS.md，
+// 与任务在哪个目录跑无关。
   assert.equal(row.config.dshHome, home)
   assert.equal(row.config.maxBytes, 65536)
   // No loop row, ever (§5.30): the agent-factory slot is single and taken.
@@ -490,9 +457,7 @@ test('the context switch moves the shipped delegation row between providers', as
   assert.equal(subagent(fresh).config.provider, 'spawn')
   assert.equal(subagent(fresh).config.toolName, 'subagent')
 
-  // 「上下文是否继承主会话」 is one config key on a row the template already
-  // ships — the switch adds no row and renames no tool (user m07236:
-  // 「用现成的方式实现就行」).
+// 「上下文是否继承主会话」是模板已有那一行上的一个 config 键：开关不加行、不改工具名。
   role.overrides = { 'tool-subagent': { config: { provider: 'fork' } } }
   const inherit = buildDefinition(role, template, 'win32')
   assert.equal(subagent(inherit).config.provider, 'fork')
@@ -502,10 +467,7 @@ test('the context switch moves the shipped delegation row between providers', as
   assert.equal(delegation(inherit).length, delegation(fresh).length)
 })
 
-// §5.32 — the four modes. The user asked for 「loop 直接从现有的四个来选，默认使用标准
-// 模式」 (m07307) and then settled where the switch lives: 「角色详情里加一个四选一」
-// (m07345). A role therefore stores *which* deployment preset it is built from, and
-// its rows come from that preset's declaration (§5.62: read live, no bundled copy).
+// 四种模式：角色存「按哪个部署预设构建」，行来自那份预设的声明（运行时读，无可复制的快照）。
 
 test('the four known modes are still the deployment’s four, and each is its own composition', async () => {
   assert.deepEqual(
@@ -521,9 +483,7 @@ test('the four known modes are still the deployment’s four, and each is its ow
   const ids = async (mode) => (await loadTemplate(mode)).plugins.map((row) => row.id)
   const standard = await ids('standard')
 
-  // Each mode differs from `standard` in exactly the way the deployment's own
-  // patch file says it does — this is the assertion that catches a fixture
-  // refreshed from the wrong file.
+// 每种模式与 standard 的差异必须与部署自己的 patch 文件一致 —— 这条能抓住从错文件刷新的夹具。
   assert.equal((await ids('ptc')).includes('tool-presentation'), true)
   assert.equal(standard.includes('tool-presentation'), false)
   assert.equal((await ids('cordis')).includes('tool-cordis'), true)
@@ -533,17 +493,14 @@ test('the four known modes are still the deployment’s four, and each is its ow
 
 test('normalizeMode keeps a preset id and coerces only what cannot be one (§5.40)', () => {
   for (const mode of MODES) assert.equal(normalizeMode(mode.id), mode.id)
-  // §5.40 — the roster belongs to the deployment, so an id this build does not
-  // ship is a legitimate mode, not junk.
+// roster 属于部署，所以这个构建不发的 id 也是合法模式，不是垃圾。
   assert.equal(normalizeMode('house-style'), 'house-style')
-  // What is still coerced: nothing that could not name a preset, and nothing
-  // that could climb out of a preset id used as a file-name component.
+// 仍然强制的只有：表达不了预设 id 的值，以及会爬出预设 id 文件名的值。
   for (const junk of [undefined, null, '', 'has/slash', 'has space', 42, {}]) {
     assert.equal(normalizeMode(junk), 'standard')
   }
   assert.equal(modeLabel('cordis'), '创造模式')
-  // An id this build does not know must not read as 「标准模式」: that would
-  // name a mode the role is not built from.
+// 这个构建不认识的 id 不能被读成「标准模式」：那等于说角色按一个不是它的模式构建。
   assert.equal(modeLabel('nope'), 'nope')
   assert.equal(shippedLabel('cordis'), '创造模式')
   assert.equal(shippedLabel('nope'), null)
@@ -551,13 +508,10 @@ test('normalizeMode keeps a preset id and coerces only what cannot be one (§5.4
 
 test('normalizeRole keeps the mode, and defaults a file that predates it', () => {
   assert.equal(normalizeRole({ id: 'team-a', name: 'A', mode: 'ptc' }).mode, 'ptc')
-  // A role written before §5.32 has no `mode` at all: it must still load, as
-  // standard — the mode the user named as the default.
+// 早于四种模式的时代写的角色没有 mode：必须还能载入，按标准模式。
   assert.equal(normalizeRole({ id: 'team-a', name: 'A' }).mode, 'standard')
-  // §5.40 — a role may name a preset this build has never seen, and loading it
-  // must not silently move the role to another mode. Only a value that cannot
-  // be a preset id is coerced: this runs on load, where throwing would turn a
-  // hand-edited file into an unusable role.
+// 角色可以指名这个构建从没见过的预设，载入不能把它悄悄挪到别的模式；
+// 只有连预设 id 都不成立的值才被纠正 —— 这段跑在载入期，抛错会把一个手改文件变成废角色。
   assert.equal(normalizeRole({ id: 'team-a', name: 'A', mode: 'house-style' }).mode, 'house-style')
   assert.equal(normalizeRole({ id: 'team-a', name: 'A', mode: 'spawn!!' }).mode, 'standard')
 })
@@ -568,8 +522,7 @@ test('createRole records the mode it was built from', async () => {
   assert.equal(role.mode, 'ptc')
   assert.equal(role.description, '以 PTC 模式 为模板的角色')
 
-  // A caller that passes one snapshot but no mode gets a role that agrees with
-  // that snapshot instead of a silently mismatched pair.
+// 传了快照却没传模式：得到与那份快照一致的角色，而不是静默错配的一对。
   assert.equal(createRole('team-b', 'B', ptc).mode, 'ptc')
   assert.equal(createRole('team-c', 'C', await loadTemplate()).mode, 'standard')
 })
@@ -587,15 +540,12 @@ test('buildDefinition composes the snapshot of the role mode', async () => {
     ['persona', 'persistent-shell'],
   )
 
-  // The same role, same overrides, moved to 标准模式: the rows come from the
-  // other snapshot and the minimal-only rows are gone.
+// 同一个角色、同一批 override 搬到标准模式：行来自另一份快照，minimal-only 行消失。
   const moved = buildDefinition({ ...minimal, mode: 'standard' }, templateOf, 'win32')
   assert.equal(moved.plugins.length, templates.get('standard').plugins.length)
   assert.equal(moved.plugins.some((row) => row.id === 'persistent-shell'), false)
 
-  // A role on a mode with no `agent-instructions` row keeps its overrides but
-  // has no row for them to land on — the honest state the UI reports as
-  // `agentsMd.hasRow: false` rather than inventing a row (R3).
+// 模式里没有 agent-instructions 行时，override 保留但没有落点 —— UI 报 agentsMd.hasRow: false，不凭空造行。
   const wired = buildDefinition(
     { ...minimal, overrides: { 'agent-instructions': { config: { dshHome: 'C:\\roles\\team-min' } } } },
     templateOf,
@@ -605,8 +555,7 @@ test('buildDefinition composes the snapshot of the role mode', async () => {
   assert.equal(wired.plugins.some((row) => row.id === 'agent-instructions'), false)
 })
 
-// §5.59 —— 用户 m00378：「现有角色直接给 json 里面写一个颜色，新角色也是自动写，不用在界面配置
-// 里面展示这个配置」。颜色是角色文件自己的字段：老角色在载入时补写，新角色在 upsert 时分配，
+// 颜色是角色文件自己的字段：老角色载入时补写、新角色 upsert 时分配；
 // 任意两个角色不同色，同一个 id 永远同一个色。
 test('§5.59 normalizeRole keeps a legal colour and drops a broken one', () => {
   const kept = normalizeRole({ id: 'team-a', name: '甲', color: '#1d4ed8' })

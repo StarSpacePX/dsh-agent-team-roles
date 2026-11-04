@@ -1,10 +1,5 @@
-/**
- * 施工批次 A —— P0 宿主半的回归测试（A4 /command 全 400 且无日志 / A5 dispose 竞态）
- *
- * 来源：`tests/p0-host.test.mjs`（468 行，超 400 行红线）。这两节共享 `createHarness()` 与
- * `waitFor()`，与 A1/A2/A3 的临时数据目录夹具没有交集，所以整段搬出来。
- * test() 回调体逐字未改。
- */
+/** P0 宿主半回归测试（A4 /command 全 400 且无日志 / A5 dispose 与注册竞态）。
+ * 这两节与 A1/A2/A3 的夹具没有交集，从 p0-host.test.mjs 整段搬出来（超 400 行红线）。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -17,9 +12,7 @@ import { createHarness, call, withPlugin } from './support/harness.mjs'
 
 const COMMAND_URL = '/api/dsh-agent-team-roles/command'
 
-// ---------------------------------------------------------------------------
-// A4 — /command 全 400 且无日志
-// ---------------------------------------------------------------------------
+// ---- A4 —— /command 全 400 且无日志 ----
 
 test('A4: commandStatus 用错误自带的 status，未就绪回 503，其余回 400', () => {
   assert.equal(commandStatus(new Error('随便什么错')), 400, '没有 status 的错误仍是 400')
@@ -96,9 +89,7 @@ test('A4: 普通拒绝回 400 但也有 warn 日志（路由不再是哑的）',
   })
 })
 
-// ---------------------------------------------------------------------------
-// A5 — dispose 与「还在注册中的角色」赛跑
-// ---------------------------------------------------------------------------
+// ---- A5 —— dispose 与「还在注册中的角色」赛跑 ----
 
 /** Poll until `predicate` holds; the plugin's startup is fire-and-forget. */
 async function waitFor(predicate) {

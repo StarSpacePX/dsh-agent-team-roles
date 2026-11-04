@@ -1,9 +1,5 @@
-/**
- * 成员绑定与角色名（§5.46 / §5.53 / 绑定开关）
- *
- * 批次 F4：从 tests/plugin.test.mjs 拆分而来。test() 回调体逐字未改，只有两类机械调整：
- * import 来源换成本目录的相对路径；测试体里 `new URL('../lib/…')` 加深一层为 `'../../lib/…'`。
- */
+/** 成员绑定与角色名。
+ * 从 tests/plugin.test.mjs 拆分而来（超 400 行红线），测试体只做了 import 路径加深一层的机械调整。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -18,8 +14,7 @@ test('bindMembers rebinds a delegated member to the role its label names', async
     async (harness) => {
       const { selected } = harness
       const agent = fakeChild('reviewer')
-      // §5.53 — the role is bound inside the creation window, before the child is
-      // announced, so a creation is what drives it now (not `agent/created`).
+// 角色在创建窗口里绑定，早于子代理被公开宣布，所以现在驱动它的是创建，不再监听 agent/created。
       await createMember(harness, { child: agent })
       assert.deepEqual(
         selected.map((entry) => entry.preset),
@@ -43,14 +38,13 @@ test('binding is off by default, so a delegation keeps inheriting the parent pre
   )
 })
 
-//#region §5.46 — the deterministic member→role path
+// ---- 确定性的成员 → 角色路径 ----
 
 test('§5.46 the member name is the preset id without its prefix, hashed for a Chinese role name', () => {
-  // The id already carries the slug, so a Chinese name needs no pinyin: the
-  // hash fallback inside `slugify` is exactly what makes the key expressible.
+// id 已经带 slug，中文名也不需要拼音：slugify 的哈希兜底正是让 key 能表达的原因。
   assert.equal(memberNameForRole({ id: 'team-r1abc' }, 'team-'), 'r1abc')
   assert.equal(memberNameForRole({ id: 'team-reviewer' }, 'team-'), 'reviewer')
-  // No prefix in the id, or no prefix asked for: unchanged.
+// id 里没有前缀，或者没要求前缀：原样不动。
   assert.equal(memberNameForRole({ id: 'r1abc' }, 'team-'), 'r1abc')
   assert.equal(memberNameForRole({ id: 'team-r1abc' }, ''), 'team-r1abc')
   assert.equal(memberNameForRole(null, 'team-'), '')
@@ -77,11 +71,8 @@ test('§5.46 a teammate binds by its Team name even when the description names n
   await withPlugin(
     async (harness) => {
       const { selected, teamState, log } = harness
-      // `spawn_teammate` passes the free-form `description` as the descriptor
-      // label (…\dsh-experimental-agent-team\lib\index.js:576) — Chinese prose the
-      // old label-only match could never resolve. The Team name is the fact, and
-      // the creation window reads it off the Lead's durable roster
-      // (`listMembers(lead)`), because the child is not registered yet.
+// spawn_teammate 把自由文本 description 当描述符 label，而旧的只匹配 label 的做法解析不了中文散文。
+// 团队名才是事实，创建窗口从 Lead 的持久名册（listMembers(lead)）读它，因为子代理还没注册。
       const agent = fakeChild('帮我写一份实现方案，越详细越好')
       teamState.rows = [{ id: 'session-member', name: 'r1abc', role: 'teammate', status: 'provisioning' }]
       await createMember(harness, { child: agent })
@@ -131,8 +122,7 @@ test('§5.46 a plain subagent still binds by its label, and a runtime without Ag
   await withPlugin(
     async (harness) => {
       const { selected, log } = harness
-      // Not a Team member: `listMembers` has no row for the child, so the label is
-      // all there is — and it still works, exactly as before §5.46.
+// 不是团队成员：listMembers 里没有这个子代理的行，只剩 label —— 它照样能用，与之前一致。
       await createMember(harness, { child: fakeChild('reviewer') })
       assert.deepEqual(
         selected.map((entry) => entry.preset),
@@ -158,8 +148,7 @@ test('§5.46 the roster hands the Lead the exact spawn name of every role', () =
     'team-',
   )
   assert.match(text, /<team-roster>/)
-  // 每个角色一行、建没建都有这一行（用户 m17306：没建的只是状态 vacant），
-  // 标签里只放行、叙述句在标签外（用户 m17317）。
+// 每个角色一行，建没建都有这一行（没建的只是状态 vacant）；标签里只放行，叙述句在标签外。
   assert.match(text, /<team-roster>\n- r1abc（vacant）\n- reviewer（vacant）\n<\/team-roster>/)
   assert.match(text, /<team-roles>/)
   assert.match(text, /- 「架构师」 → name 用 "r1abc"/)
@@ -167,10 +156,10 @@ test('§5.46 the roster hands the Lead the exact spawn name of every role', () =
   assert.ok(text.includes(ROSTER_ROLE_LINE))
   assert.ok(!text.includes('坏的'), 'a damaged role is not advertised as spawnable')
 
-  // A getter is supported, so a role added mid-session shows up in the next turn.
+// 支持 getter，所以会话中途新增的角色下一轮就能看到。
   assert.match(rosterText([], () => [{ id: 'team-reviewer', name: 'reviewer', overrides: {} }], 'team-'), /reviewer/)
 
-  // Nothing to say at all: no members and no roles contributes nothing.
+// 什么都说不出：没有成员也没有角色就什么都不贡献。
   assert.equal(rosterText([], [], 'team-'), '')
   assert.equal(rosterText(undefined, undefined, 'team-'), '')
 })
@@ -181,12 +170,11 @@ test('a refused binding is reported and never escapes the creation window', asyn
   await withPlugin(
     async (harness) => {
       const { selected, log, selectFailure } = harness
-      // The registry refuses a session that has already started.
+// 注册表拒绝已经开始过的会话。
       selectFailure.message = 'agent-preset/locked: This session has already started'
       let callerSetupRan = false
-      // §5.53 — the composed `setup` is awaited by `agents.create` itself, so this
-      // await is the assertion: a rejection here would tear the whole creation
-      // down, taking the caller's own setup (and every other step) with it.
+// 组合出来的 setup 由 agents.create 自己 await，所以这个 await 就是断言：
+// 这里 reject 会把整个创建拖垮，连调用方自己的 setup 和其它步骤一起带走。
       await createMember(harness, {
         child: fakeChild('reviewer'),
         setup: async () => {
@@ -215,11 +203,8 @@ test('the first descriptor wins, which is the one dsh treats as authoritative', 
   await withPlugin(
     async (harness) => {
       const { selected } = harness
-      // `foldSubagentDescriptor` documents that "the establishing provider
-      // appends exactly one, so a later same-type event cannot rewrite the
-      // declared composition" … and folds with `find`, i.e. the first. Both
-      // labels name a real role here, so a last-wins scan would pick the wrong
-      // one relative to how dsh itself classifies the child.
+// foldSubagentDescriptor 记的是「建立 provider 恰好追加一条，之后同类型事件不能改写声明的组合」，
+// 折的时候用 find（取第一条）。这里两个 label 都指向真角色，取最新会选错，与 dsh 自己的分类不一致。
       const agent = fakeChild(undefined, undefined, [
         {
           type: 'subagent/descriptor',
@@ -254,8 +239,7 @@ test('the first descriptor wins, which is the one dsh treats as authoritative', 
 test('a descriptor with no creation label binds nothing', async () => {
   await withPlugin(
     async ({ selected, emit, log }) => {
-      // `label` is optional on a one-shot descriptor, so a labelled role must
-      // not be guessed from the label's absence.
+// 一次性描述符的 label 是可选的，所以带 label 的角色不能靠「label 缺失」去猜。
       await emit('agent/created', { agent: fakeChild(undefined), source: 'fresh' })
       assert.deepEqual(selected, [])
       assert.equal(
@@ -271,11 +255,11 @@ test('a descriptor with no creation label binds nothing', async () => {
 test('only a labelled delegated child whose label names a role is rebound', async () => {
   await withPlugin(
     async ({ selected, emit }) => {
-      // The label names no role.
+// label 没指名任何角色。
       await emit('agent/created', { agent: fakeChild('nobody'), source: 'fresh' })
-      // A top-level session has no delegating parent.
+// 顶层会话没有委派父级。
       await emit('agent/created', { agent: fakeChild('reviewer', { origin: 'fresh' }), source: 'fresh' })
-      // A delegated child whose log carries no descriptor yet.
+// 委派出来的子代理，日志里还没有描述符。
       await emit('agent/created', {
         agent: {
           session: {

@@ -1,10 +1,5 @@
-/**
- * Unit tests for the files a role owns.
- *
- * The interesting part is not the string juggling: it is *which* file a new role
- * copies its rules from. It is fixed: the user-global `$DSH_HOME/AGENTS.md`, and
- * nothing else (§5.42; user m10123 → m10519: 「这个是固定复制的…项目文件有啥好复制的」).
- */
+/** 角色拥有的文件的单元测试。重点不是字符串处理，而是新角色**从哪个文件**复制规则：
+ * 固定是用户全局 $DSH_HOME/AGENTS.md，别的都不是。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
@@ -51,8 +46,7 @@ test('a new role copies the fixed user-global AGENTS.md', async () => {
     await writeFile(path.join(home, 'AGENTS.md'), '# global\n- use pnpm\n', 'utf8')
     assert.equal(await pickAgentsMdSource({ home }), path.join(home, 'AGENTS.md'))
 
-    // A workspace file changes nothing: a member that enters a project reads
-    // that project's AGENTS.md live, so there is nothing to snapshot.
+// 工作区文件不影响：成员进入项目后读的是那个项目自己的 AGENTS.md，没什么可快照的。
     await writeFile(path.join(cwd, 'AGENTS.md'), '# project\n- keep it short\n', 'utf8')
     await writeFile(path.join(cwd, 'CLAUDE.md'), '# claude\n- be brief\n', 'utf8')
     assert.equal(await pickAgentsMdSource({ cwd, home }), path.join(home, 'AGENTS.md'))
@@ -63,8 +57,7 @@ test('the 10-byte workspace placeholder never mattered (m10123 / m10519)', async
   await withSandbox(async ({ cwd, home }) => {
     await writeFile(path.join(home, 'AGENTS.md'), '# 用户全局规则\n- 始终使用 PowerShell\n', 'utf8')
 
-    // The file that made new roles look empty: it exists, is not empty, and
-    // says nothing — and it is irrelevant now, because nothing looks at it.
+// 曾经让新角色看起来空的元凶：它存在、非空、却没说什么 —— 现在没人看它，无关了。
     await writeFile(path.join(cwd, 'AGENTS.md'), '\n#  暂无\n', 'utf8')
     assert.equal(await pickAgentsMdSource({ cwd, home }), path.join(home, 'AGENTS.md'))
   })

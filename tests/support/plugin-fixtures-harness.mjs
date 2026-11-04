@@ -1,11 +1,4 @@
-/**
- * 领域夹具（施工批次 A–G 的测试共用）：角色定义、假 teammate、假 loader、名册与任务事件……
- *
- * 批次 F4：从 tests/plugin.test.mjs 顶部逐字搬来，只加 export 前缀；唯一的路径调整是
- * 夹具体里 `new URL('../lib/…')` 加深一层为 `'../../lib/…'`。假环境本身在 ../harness.mjs。
- *
- * @module dsh-agent-team-roles/tests/support/plugin-fixtures
- */
+/** 领域夹具：角色定义、假 teammate、假 loader、名册与任务事件……假环境本身在 ../harness.mjs。 */
 import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { TEAM_BUNDLE } from '../../lib/deployment.js'
@@ -14,15 +7,12 @@ import { createHarness, call } from './harness.mjs'
 import os from 'node:os'
 import path from 'node:path'
 
-
-
 export function fakeChild(label, header = { parentSession: 'session-lead', origin: 'subagent' }, events) {
   return {
     id: 'session-member',
     session: {
       header,
-      // The real payload, verified against 42 persisted child logs on this
-      // machine: `{ version: 3, mode, provider: 'spawn', label, … }`.
+// 真回包形状：对过本机 42 份子会话日志（{ version: 3, mode, provider: 'spawn', label, … }）。
       ownEvents: () =>
         events ?? [
           {
@@ -44,17 +34,8 @@ export const REVIEWER = {
 
 export const LEAD_AGENT = { id: 'session-lead' }
 
-/**
- * Drive one creation through the window §5.53 wraps.
- *
- * Both entry points take the same request, and dsh awaits the request's `setup`
- * *inside* the call — before the child is announced — which is the whole reason
- * the role can be selected there. The harness's fake `agents.create`/`resume`
- * therefore runs the composed setup and hands the test's own child through.
- *
- * @param {ReturnType<typeof createHarness>} harness
- * @param {{ method?: 'create'|'resume', child?: object, childCtx?: object, params?: object, setup?: Function }} [options]
- */
+/** 走一遍创建窗口：create/resume 接受同一份 request，dsh 在调用内就 await request.setup（在 child 宣告之前），
+ * 这正是角色能在那里选中的原因；假 create/resume 因此会跑组合好的 setup，把测试自己的 child 交出去。 */
 
 export async function createMember(harness, options = {}) {
   const method = options.method ?? 'create'
@@ -148,7 +129,7 @@ export function fakePluginManager(row = {}) {
     bundle,
     /** @type {{ name: string, enabled: boolean }[]} */
     calls: [],
-    /** §5.54 — how many times the deployment's roster was asked for. */
+// 部署的名册被问了几次。
     listCalls: 0,
     async listBundles() {
       this.listCalls += 1
@@ -194,19 +175,8 @@ export function argumentText(source, open) {
   throw new Error('括号不配平')
 }
 
-/**
- * A Loader stand-in for the harness (§5.62).
- *
- * A real deployment always holds the four presets dsh ships, so the stand-in
- * does too, read from `tests/fixtures/presets/`: the plugin keeps no copy of
- * them any more, and a test that forgot to declare `standard` would otherwise
- * exercise a deployment that cannot exist. Caller declarations come *first*, so
- * a test can shadow a shipped id; `options.shipped === false` drops them for the
- * tests that want a deployment without any preset at all.
- *
- * @param {object[]} [declarations] - extra preset declarations, in `options.config` shape.
- * @param {{ shipped?: boolean }} [options]
- */
+/** 给 harness 用的 Loader 替身：真部署永远持有 dsh 自带的四份 preset，这里也照做（从 tests/fixtures/presets/ 读）。
+ * 插件不再留副本；调用方声明排在前，所以用例可以遮蔽某份 shipped preset。 */
 export function fakeLoader(declarations = [], options = {}) {
   const shipped = options.shipped === false ? [] : SHIPPED_MODE_IDS.map((id) => shippedPreset(id))
   return {

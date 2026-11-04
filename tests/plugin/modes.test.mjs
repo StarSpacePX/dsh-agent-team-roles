@@ -1,8 +1,5 @@
-/**
- * 模式清单（§5.40「从现有的模式中加载，不要写死」+ set-mode）
- *
- * 来源：`tests/plugin/team-and-config.test.mjs`（745 行，超 400 行红线）。用例体逐字未改。
- */
+/** 模式清单（从现有模式加载，不写死）与 set-mode。
+ * 从 tests/plugin/team-and-config.test.mjs 拆出（超 400 行红线），用例体逐字未改。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { call, withPlugin } from '../support/harness.mjs'

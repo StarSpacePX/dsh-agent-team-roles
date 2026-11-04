@@ -1,19 +1,12 @@
-/**
- * §5.43 — 名册文本（`D5` 组）。
- *
- * 从 `p1-host.test.mjs` 切出来：这组只测"那段文字长什么样"（谁在、名字全不全、
- * 介绍说几遍、vacant 行、loop/继承是不是现推），和宿主接线（D1–D4）不是一回事。
- */
+/** 名册文本（D5 组）：只测那段文字长什么样（谁在、名字全不全、介绍说几遍、vacant 行），
+ * 与宿主接线（D1–D4）不是一回事。 */
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { rosterText } from '../lib/team-roster.js'
 
-/**
- * D5 — 名册是**运行期快照**：文本一变，整段 runtime context 就再物化一次，
- * 顺带打断一次 prompt cache（`lib/team-roster.js:11-15`）。所以只做三类事：
- * 削掉永远不变的多余字符、按集合排序（别让返回顺序决定文本）、把尾巴折叠。
- */
+/** 名册是运行期快照：文本一变，整段 runtime context 就再物化一次、顺带打断 prompt cache。
+ * 所以只做三类事：削掉永远不变的多余字符、按集合排序、把尾巴折叠。 */
 const member = (name, status = 'active', extra = {}) => ({ role: 'teammate', name, status, ...extra })
 
 test('D5: 名册行砍掉 spawn 时的自由文本 description，name / status / model 保留', () => {
@@ -89,4 +82,3 @@ test('D5: 一个成员都没有时，名册里每个角色各占一行、状态�
   assert.match(text, /<team-roster>\n- select（vacant）\n<\/team-roster>/, '标签里只有行，没建的也占一行（用户 m17306/m17317）')
   assert.match(text, /<team-roles>/)
 })
-

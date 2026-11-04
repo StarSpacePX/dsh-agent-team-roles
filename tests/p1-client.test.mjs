@@ -1,29 +1,13 @@
-// E1 / E2 / E3 —— 客户端 P1 协议层真行为测试（批次E）。
-//
-// 为什么是行为测试而不是源码正则：这三条的病根全在**时序与并发**上——
-//   E1 超时/重试/在途去重：看的是"同一段时间里到底发出去了几个请求"；
-//   E2 过期回包：看的是"先发但后到的响应有没有把后发的结果盖掉"；
-//   E3 registered 兜底：看的是"宿主漏字段时面板还渲不渲染得出来"。
-// 正则只能证明"代码里写着某句话"。所以这里跟 p0-client.test.mjs 一样，
-// 把 lib/client.js 真的装进 vm 求值，用极简 React 运行时真渲染、真点、真拦截 fetch。
-//
-// 假环境（vm 求值 lib/client.js + 极简 React 运行时 + 拦截 fetch + 计时器压缩 + 夹具）
-// 已抽到 tests/client-runtime.mjs，与 p0-client.test.mjs 共用；本文件只剩这 9 条用例。
-//
-// 计时器压缩：请求超时是 15s，等不起。sandbox 里的 setTimeout 把 **≥10s** 的
-// 延时压成 5ms（只影响 REQUEST_TIMEOUT_MS=15000；ERROR_TTL_MS=8000、burst=120ms
-// 都保持原样），这样超时是"真被 AbortController 触发的"，只是时钟走得快。
-//
-// 夹具是手写的合成数据，字段名逐个对齐 3099 真机 /state 回包，不含本机路径。
+// 客户端 P1 协议层真行为测试（E1 超时/重试/在途去重、E2 过期回包丢弃、E3 registered 兜底）。
+// 病根全在时序与并发上，正则证明不了，所以把 lib/client.js 真装进 vm 求值、真渲染、真点、真拦截 fetch。
+// 假环境在 tests/client-runtime.mjs。
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { deferred, mountPanel, role, secondRole, sleep, statePayload } from './support/client-runtime.mjs'
 
-// ---------------------------------------------------------------------------
-// E1 —— 超时 / 重试 / 在途去重
-// ---------------------------------------------------------------------------
+// ---- E1 —— 超时 / 重试 / 在途去重 ----
 
 test('E1: 同一 action 在途时，重复点击不会重复发请求', async () => {
   const gate = deferred()
@@ -34,8 +18,7 @@ test('E1: 同一 action 在途时，重复点击不会重复发请求', async ()
       assert.ok(node, `没有找到「${label}」按钮`)
       node.props.onClick()
     }
-    // 用户连点两下「刷新」——此时 React 还没来得及把按钮置灰，
-    // 两次 onClick 落在同一帧里（这正是"重复点击"的真实形态）。
+// 连点两下「刷新」：React 还没来得及把按钮置灰，两次 onClick 落在同一帧里。
     run('刷新')
     run('刷新')
     await sleep(30)
@@ -45,7 +28,7 @@ test('E1: 同一 action 在途时，重复点击不会重复发请求', async ()
     await sleep(30)
     await panel.settle()
 
-    // 在途结束之后，下一次点击必须照常发出（去重只覆盖"在途"这一小段）。
+// 在途结束之后下一次点击必须照常发出（去重只覆盖「在途」这一小段）。
     run('刷新')
     await sleep(30)
     assert.equal(panel.net.commandCalls, 2, '在途结束后应该重新发得出去')
@@ -124,9 +107,7 @@ test('E1: GET 重试到上限就放弃，并把失败变成可见提示', async 
   }
 })
 
-// ---------------------------------------------------------------------------
-// E2 —— refresh 并发保护：后发覆盖先发，过期回包丢弃
-// ---------------------------------------------------------------------------
+// ---- E2 —— refresh 并发保护：后发覆盖先发，过期回包丢弃 ----
 
 test('E2: refresh 的过期回包被丢弃（后发覆盖先发）', async () => {
   const stale = deferred()
@@ -140,8 +121,7 @@ test('E2: refresh 的过期回包被丢弃（后发覆盖先发）', async () =>
     stateReply: (call, scope) => {
       if (scope === 'chat-tab') return A
       if (call === 1) return A // 挂载时的第 1 次 refresh
-      // 第一次"命令失败之后的 refresh"（先发的那一次）挂住，故意晚回；
-      // 之后每一次 refresh 都立刻回 FRESH（后发、先到）。
+// 第一次「命令失败之后的 refresh」挂住、故意晚回；之后每次 refresh 都立刻回 FRESH。
       if (!held) {
         held = true
         return stale.promise
@@ -177,9 +157,7 @@ test('E2: refresh 的过期回包被丢弃（后发覆盖先发）', async () =>
   }
 })
 
-// ---------------------------------------------------------------------------
-// E3 —— state.registered 兜底
-// ---------------------------------------------------------------------------
+// ---- E3 —— state.registered 兜底 ----
 
 test('E3: state.registered 缺失时面板照常渲染，且不误报「未注册」', async () => {
   const panel = await mountPanel({ state: statePayload([role(), secondRole()], { registered: undefined }) })

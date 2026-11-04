@@ -1,15 +1,6 @@
-/**
- * Coverage for `tools/build-client.mjs` —— 客户端半的构建器。
- *
- * 为什么单独测：`npm test` 里挂的是 `build-client.mjs --check`，它只证明「磁盘产物 = 当前
- * 源码的构建结果」，**不**证明构建器本身会拒绝坏输入。真源码一旦写成 `export const` 或
- * 动态 `import()`，`--check` 只会说「不一致」，失败信息指向产物而不是源码；而 BOM 那条
- * （真踩过：PowerShell `Set-Content -Encoding UTF8` 会写 BOM）当年是**静默**把整个模块
- * 的 `import` 判定失配、模块不转译的。
- *
- * 构建器是 CLI（模块作用域直接跑 main），所以这里用 `TEAM_CLIENT_ROOT` 这个测试缝把
- * 它指到临时夹具上跑：真 `lib/client.js` 一个字节都不动。
- */
+/** 覆盖 tools/build-client.mjs 构建器：npm test 里的 --check 只证明磁盘产物与当前源码一致，
+ * 不证明构建器会拒绝坏输入（export const、动态 import、BOM 都曾让模块静默不转译）。
+ * 构建器是 CLI（模块作用域直接跑 main），这里用 TEAM_CLIENT_ROOT 指到临时夹具跑。 */
 
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
@@ -73,7 +64,7 @@ test('BUILD1: 源码与产物一致时 --check 通过；改一个字节后报出
     assert.equal(inSync.status, 0, inSync.stderr)
     assert.match(inSync.stdout, /^--check: .*client\.js 与 src\/client\/\*\* 一致（2 modules）$/m)
 
-    // 改一个字节，然而**不**重新构建 ⇒ 磁盘产物落后于源码
+// 改一个字节但不重新构建 ⇒ 磁盘产物落后于源码
     await writeSources(root, { 'util.js': UTIL.replace('hello', 'hallo') })
     const drifted = run(root, ['--check'])
     assert.equal(drifted.status, 1)

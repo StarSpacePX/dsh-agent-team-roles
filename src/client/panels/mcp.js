@@ -1,4 +1,4 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // MCP 面板。
 
 import { filterEntries, mcpEntries } from './../entries.js';
@@ -7,7 +7,7 @@ import { React, h } from './../react.js';
 import { styles } from './../styles.js';
 
 function McpPanel({ role, mcp, pending, onToggle, onBulk, needle = '', onlyChanged = false }) {
-  // §5.36 — user m08545 2.「默认都折叠起来」: the MCP list starts folded too.
+// MCP 列表默认折叠，与技能那一块一致。
   const [open, setOpen] = React.useState(false);
   const capabilities = role.capabilities || {};
   const deny = new Set((capabilities.mcp || {}).deny || []);
@@ -15,15 +15,13 @@ function McpPanel({ role, mcp, pending, onToggle, onBulk, needle = '', onlyChang
   const header = (text) =>
     h(
       'button',
-      // 不叠加 `styles.sectionTitle`（13px/700）：MCP 这一行和分组行
-      // 同级，字号/字重也跟着一样（`groupToggle` 的 600，字号继承 root 的 13px）。
+// 不叠加 styles.sectionTitle（13px/700）：MCP 这一行与分组行同级，字号字重保持一致（600，字号继承 13px）。
       { style: styles.groupToggle, onClick: () => setOpen(!open), title: open ? '收起' : '展开' },
       open ? '▾' : '▸',
       ` ${text}`,
     );
 
-  // An older host half does not send `mcp` at all. Say so, instead of
-  // rendering "the connector has no connections" — which would be a lie.
+// 旧版宿主根本不发 mcp：要明说，而不是渲染成「连接器没有连接」—— 那是假话。
   if (mcp === undefined) {
     return h(
       'div',
@@ -45,10 +43,9 @@ function McpPanel({ role, mcp, pending, onToggle, onBulk, needle = '', onlyChang
     );
   }
 
-  // MCP 这一行也要有一个「整行开关」，和各分组标题行长得一样：
-  // 它就是全开 / 全关（半选 = 只开了一部分）。
+// MCP 这一行也要有一个整行开关，和各分组标题行长得一样：它就是全开 / 全关（半选 = 只开了一部分）。
   const allow = services.filter((service) => !deny.has(service.serverName));
-  // §5.55 — the same needle / only-changed rule as every other block.
+// 与其它块同一条 needle / 只看改过的规则。
   const entries = filterEntries(mcpEntries(role, mcp), needle, onlyChanged);
 
   return h(
@@ -56,9 +53,8 @@ function McpPanel({ role, mcp, pending, onToggle, onBulk, needle = '', onlyChang
     { style: styles.field },
     h(
       'div',
-      // 和分组行用同一套 `styles.panelHeader`（灰底 + 同样的两列网格），
-      // 不是 `styles.sectionHeader`（只有一条下划线、没有底色）——
-      // 这样灰底层级才和下面的分组行一致（用户问「为啥 mcp 这一行不是和下面的一样是灰色」）。
+// 和分组行用同一套 styles.panelHeader（灰底 + 两列网格），
+// 不是 styles.sectionHeader（只有下划线、没底色），这样灰底层级才和下面的分组行一致。
       { style: styles.panelHeader },
       h(
         'span',
@@ -76,7 +72,7 @@ function McpPanel({ role, mcp, pending, onToggle, onBulk, needle = '', onlyChang
           ? null
           : h('input', {
               type: 'checkbox',
-              // 和分组行同一个入口：复选框 = 全开 / 全关。
+// 和分组行同一个入口：复选框 = 全开 / 全关。
               title: '全部 server 一起开 / 关（半选 = 只开了一部分）',
               disabled: pending.has('mcp:*'),
               checked: allow.length === services.length,
@@ -127,7 +123,7 @@ function McpPanel({ role, mcp, pending, onToggle, onBulk, needle = '', onlyChang
                   ),
                   h('span', { style: { textAlign: 'center' } }, h('input', {
                     type: 'checkbox',
-                    // §5.35 — per-server pending only (m08302).
+// 逐 server 的 pending。
                     disabled: pending.has(`mcp:${service.serverName}`),
                     checked: !deny.has(service.serverName),
                     title: deny.has(service.serverName)
@@ -141,28 +137,8 @@ function McpPanel({ role, mcp, pending, onToggle, onBulk, needle = '', onlyChang
   );
 }
 
-/**
- * §5.55 — user m18131「角色可见性禁用就行，你加一下，在 mcp 和技能中间」.
- *
- * The list of tools the deployment registered globally (`ego_*`,
- * `list_agents`, …), each one a **per-role visibility** switch. It is not the
- * same thing as the 「工具 (19)」 group above: a preset row switched off is a
- * plugin that is not mounted at all, while a box switched off here leaves the
- * plugin running and hides one tool from this role and its descendants.
- *
- * That is why the rows carry **exact tool names**: `tools.schemas()` reports
- * a name, a description and a parameter schema — and no field saying which
- * plugin registered a tool — so there is no honest way to group them by
- * plugin. One flat list, obeying the ability column's filter box.
- *
- * The name is recorded in `capabilities.toolGate.deny`; the
- * `agent-team-tool-gate` row mounts inside the role and calls
- * `tools.restrict({ deny })` against the live registry (a name nothing
- * registers is dropped there rather than failing the mount).
- *
- * Two kinds are deliberately absent: the MCP tools — the block above owns
- * them, by server, via their `mcp__<server>__` prefix — and `run_code`, which
- * the registry refuses to restrict at all.
- */
+/** 部署全局注册的工具名单（ego_*、list_agents…），每个都是一个**按角色**的可见性开关。
+ * 和上面「工具 (19)」那一组不是一回事：那是整个插件没挂载；
+ * 这里插件照跑，只是对这个角色藏掉具体工具。 */
 
 export { McpPanel };

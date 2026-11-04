@@ -1,50 +1,28 @@
-// 全插件**唯一**的样式定义处。
-//
-// 规则：除了本文件，任何 src/client 源文件里都不许再出现颜色字面量
-// （`#rrggbb` / `rgba(...)`），也不许用 `currentColor` 当边框色——
-// 由 `tests/plugin/style-tokens.test.mjs` 钉住。角色色板（`chat.palette`）也收在这里：
-// 它是**数据**（宿主 `lib/roleColor.js` 的下发兜底），但同样属于"颜色只在一个文件里定义"。
-//
-// 分两层：
-//  1. `T`    —— 官方设计令牌 `--dsw-*`。这些变量由宿主
-//     `@deepseek-ai/dsh-client-ui-theme` 注入（`lib/client.js` 的
-//     `design_platform_css_default`，共 400+ 个），深浅主题自动跟随；
-//     官方组件自己也只用这些变量（例：`dsh-client-ui-primitives` 的
-//     `lib/settings-form/fields.module.css` 里的 `.input`）。设置页与新代码只用这一层。
-//  2. `chat` —— 群聊页的既定值：用户逐轮定稿，**值不许动**（UI 冻结），
-//     只是从散落的写法收口到这里，方便一步改全套。
+// 全插件唯一的样式定义处。
+// 规则：除本文件外，src/client 源文件里不许出现颜色字面量（#rrggbb / rgba(...)），
+// 也不许用 currentColor 当边框色 —— 由 tests/plugin/style-tokens.test.mjs 钉住。
+// 角色色板（chat.palette）也收在这里：它是数据，但同样属于「颜色只在一个文件里定义」。
+// 分两层：T = 官方设计令牌 --dsw-*（宿主 theme 注入）；chat = 群聊页既有冻结值。
 
-// 声明一律写成普通 const/function，文件末尾一条 `export { … }` 列出对外符号
-// （构建器只认这个子集，见 `tools/build-client.mjs:9-15`）。
+// 声明一律写成普通 const/function，文件末尾一条 export { … } 列出对外符号（构建器只认这个子集）。
 
 /** 取一个官方令牌。令牌缺失时浏览器会丢掉整条声明，所以关键的几个带 fallback。 */
 const token = (name, fallback) => (fallback ? `var(--dsw-${name}, ${fallback})` : `var(--dsw-${name})`);
 
-/**
- * 字号阶梯 —— **全插件唯一的五个字号**（用户 m11839「字也统一参数」）。
- *
- * 之前 10/11/12/13/15 散在 styles.js 的几十个 style 键里，想整体放大放小要一个一个改。
- * 现在只有这一处定义，`styles.js` 里写 `F.md`，群聊写 `T.font.xs`。
- * 语义按用途分（不按数值），这样数值变了语义不变：
+/** 字号阶梯 —— 全插件唯一的五个字号（15/13/12/11/10），语义按用途分：
  *   lg = 15 统计数字那种要突出的
- *   md = 13 **正文基准**（根节点就是它，标题、输入框、二级字都对齐到这档）
+ *   md = 13 正文基准（根节点就是它，标题、输入框、二级字都对齐到这档）
  *   sm = 12 辅助说明、按钮、等宽代码块
  *   xs = 11 更小的注释（时间线、脚注）
  *   xxs = 10 徽标那种点缀
- */
+ * 数值变了语义不变。 */
 const FONT = { lg: 15, md: 13, sm: 12, xs: 11, xxs: 10 };
 
-/**
- * 页面几何范式 —— 全插件唯一的「间距 / 行」参数（用户 m11997：「一个页面的 UI 范式，
- * 就不能统一一下参数，老是改一堆」）。
- *
- * 间距**只有三档**，和群聊页早就定下的那套一致（见 styles.js 的 chatStyles 注释：
- * 8 组内 / 12 块内 / 20 块间）。设置页原来是 14/10/6/4/2/16 各写各的，现在并成同一套。
- *
- * 「行」是这个面板的基本单元：一行 = `[内容 | 开关列]` 两列网格，缩进按**级**算，
- * 一级正好一个 `▸` 箭头的宽度（13px 系统字体实测 15.6px → 取 16），
- * 所以「没有箭头的二级行」的文字和「有箭头的标题」的文字起在同一条竖线上（用户 m11942）。
- */
+/** 页面几何范式 —— 全插件唯一的间距 / 行参数。
+ * 间距只有三档：8 组内 / 12 块内 / 20 块间。
+ * 「行」是面板的基本单元：[内容 | 开关列] 两列网格，缩进按级算，
+ * 一级正好一个 ▸ 的宽度（13px 系统字体实测 15.6px → 取 16），
+ * 所以没有箭头的二级行文字与有箭头的标题文字起在同一条竖线上。 */
 const LAYOUT = {
   gapLine: 8, // 行内：标签→输入框、同一组里相邻两行
   gapBlock: 12, // 块内：同一块里的字段之间
@@ -87,9 +65,9 @@ const T = {
   font: FONT,
   // 间距与行的几何范式（见上）
   layout: LAYOUT,
-  // 官方输入框那一套，逐条对齐 `dsh-client-ui-primitives/lib/settings-form/fields.module.css` 的 `.input`。
-  // 重点是 `font: inherit`：原生 input/select/textarea 不继承字体，
-  // 这正是之前"字体毛躁"（同一个面板里标签和输入框字号字重不一致）的根因。
+// 官方输入框那一套，逐条对齐 fields.module.css 的 .input。
+// 重点是 font: inherit：原生 input / select / textarea 不继承字体，
+// 这正是同一个面板里标签和输入框字号字重不一致的根因。
   field: {
     height: 34,
     padding: '0 12px',
@@ -113,16 +91,13 @@ const T = {
   },
 };
 
-/**
- * 自绘下拉框的箭头（内嵌 svg）：`appearance:none` 之后原生箭头会消失，
- * 靠这张图补回来。设置区与群聊共用同一个资产。
- */
+/** 自绘下拉框的箭头（内嵌 svg）：appearance:none 之后原生箭头会消失，靠这张图补回来。
+ * 设置区与群聊共用同一个资产。 */
 const caretImage =
   "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M1.5 3.75L5 7.25l3.5-3.5' fill='none' stroke='%23808080' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
 
-// 颜色和调色板的权威来源是宿主半（`lib/roleColor.js`），`/state` 里随角色一起下来
-// （`roles[].color` / `rolePalette` / `leadColor`）。下面这份只是拿到回包之前的兜底，
-// 以及角色表里没有的成员（比如手工起的名字）用的散列调色板，顺序与宿主半一致。
+// 颜色与调色板的权威在宿主侧（lib/roleColor.js），随 /state 与角色一起下来。
+// 下面这份只是回包前的兜底，以及角色表里没有的成员（手工起的名字）用的散列调色板，顺序与宿主侧一致。
 const PALETTE = [
   '#1D4ED8',
   '#0F766E',
@@ -136,10 +111,8 @@ const PALETTE = [
   '#4D7C0F',
 ];
 
-/**
- * 把 `#rrggbb` 按比例调淡（消息卡边框平时只到发送者色的 40%，悬停才转实色）——
- * 颜色字符串的拼接也关在这一层，源文件里只调用。不是 `#rrggbb` 就原样返回。
- */
+/** 把 #rrggbb 按比例调淡（消息卡边框平时只到发送者色的 40%，悬停才转实色）。
+ * 颜色字符串拼接也关在这一层，源文件里只调用；不是 #rrggbb 就原样返回。 */
 function withAlpha(color, alpha) {
   const hex = /^#([0-9a-fA-F]{6})$/.exec(String(color));
   if (hex === null) return color;
@@ -147,10 +120,8 @@ function withAlpha(color, alpha) {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
-/**
- * 群聊页既定值 —— **UI 冻结**：这些值一个字都不改，只搬个家。
- * 连 `currentColor` 这种"跟着主题文字色走"的写法也收在这里，源文件里不许再写。
- */
+/** 群聊页既定值 —— UI 冻结：这些值一个字都不改，只搬个家。
+ * 连 currentColor 这种跟着主题文字色走的写法也收在这里，源文件里不许再写。 */
 const chat = {
   hairline: 'rgba(128,128,128,0.28)', // 统计项 / 下拉框的亮灰细边
   hairlineBorder: '1px solid rgba(128,128,128,0.28)',

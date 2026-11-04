@@ -1,5 +1,5 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
-// 消息流的阅读顺序：默认倒序（最新在上），↑/↓ 点一下切换，选择记在本机。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
+// 消息流的阅读顺序：默认倒序（最新在上），↑/↓ 切换，选择记在本机。
 
 import { React, h } from './../react.js';
 import { chatStyles } from './../styles.js';

@@ -1,18 +1,5 @@
-// 共享的浏览器端测试运行时 —— p0-client.test.mjs 与 p1-client.test.mjs 共用。
-//
-// 为什么是行为测试而不是源码正则断言：B1 的病根在 effect 的依赖数组（对象引用
-// 每次回包都变），B2 在异步时序，E1/E2/E3 在超时、并发与缺字段兜底。正则断言只
-// 能证明「代码里写着某句话」，证明不了「用户看到的东西变了」。所以这里把
-// lib/client.js 真的装进 vm 求值，用一个极简 React 运行时真渲染面板、真改输入框、
-// 真点按钮、真拦截 fetch。
-//
-// 这一份是从两个测试文件里合并出来的：它们曾各自抄了一份 createRuntime / walk /
-// textOf / row / role / secondRole / statePayload / mountPanel，非空行有 481 行
-// 逐字相同。合并以 p1 的版本为超集（多了定时器压缩、AbortController、scope 计数），
-// 再把 p0 独有的 probeSwitchCheckbox / clickSwitchCheckbox / reloadWith 一并挂到 panel 上。
-//
-// 夹具是手写的合成数据，字段名逐个对齐 3099 真机 /state 回包（见
-// Docs/teams 下的运行时实测与批次实施记录），不含任何本机路径。
+/** 共享的浏览器端测试运行时（p0-client 与 p1-client 共用）：把 lib/client.js 真的装进 vm 求值，
+ * 用极简 React 运行时真渲染面板、真改输入框、真点按钮、真拦 fetch。 */
 
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -35,8 +22,8 @@ export async function mountPanel(options = {}) {
     commandCalls: 0,
     commands: [],
     aborted: 0,
-    // 「群聊」tab 在 apply 时就会自己读一次 /state（client.js:3488）。它是插件挂载
-    // 期间的请求，跟面板渲染无关，所以按 scope 分开计数：用例只断言 panel 那一份。
+// 「群聊」tab 在 apply 时就自己读一次 /state。它属于插件挂载期间的请求、跟面板渲染无关，
+// 所以按 scope 分开计数：用例只断言 panel 那一份。
     scopeCalls: { 'chat-tab': 0, panel: 0 },
     // stateReply / commandReply 给用例改：返回 payload，或抛错。
     stateReply: options.stateReply || null,
@@ -45,10 +32,8 @@ export async function mountPanel(options = {}) {
 
   const sandbox = {
     console,
-    // §E1 的请求超时是 15s —— 测试把 ≥10s 的延时压成 5ms，其余（burst 120ms、
-    // ERROR_TTL_MS 8000）原样，这样「超时中止」是真的被 AbortController 触发的。
-    // E2 那种「故意挂住、晚点再回」的用例要关掉压缩（`compressTimers: false`），
-    // 否则挂住的那条请求会在 5ms 后被超时中止，根本走不到「晚回但成功」那条路。
+// 请求超时是 15s，测试把 ≥10s 的延时压成 5ms（burst 120ms、ERROR_TTL_MS 8000 原样），
+// 这样「超时中止」真的由 AbortController 触发。E2 那种「故意挂住、晚点再回」的用例要关掉压缩。
     setTimeout: (fn, ms, ...rest) => setTimeout(
       fn,
       options.compressTimers === false
@@ -63,7 +48,7 @@ export async function mountPanel(options = {}) {
     AbortController,
     fetch: async (url, init = {}) => {
       const target = String(url)
-      // signal 被 abort 时，真实 fetch 会以 AbortError 拒绝 —— 这里照做。
+// signal 被 abort 时真实 fetch 以 AbortError 拒绝——这里照做。
       const abortWatch = new Promise((_resolve, reject) => {
         const signal = init.signal
         if (!signal) return
@@ -79,8 +64,8 @@ export async function mountPanel(options = {}) {
       })
       if (target.includes('/api/dsh-agent-team-roles/state')) {
         net.stateCalls += 1
-        // 第 1 次 /state 是「群聊」tab 在 apply 时自己发的（client.js:3488），跟面板
-        // 的刷新链无关：这里直接让它一次成功，免得它的超时/重试混进面板的计数里。
+// 第 1 次 /state 是「群聊」tab 在 apply 时自己发的，跟面板刷新链无关：这里直接让它一次成功，
+// 免得它的超时/重试混进面板计数。
         const isChatTab = net.stateCalls === 1
         const scope = isChatTab ? 'chat-tab' : 'panel'
         net.scopeCalls[scope] += 1
@@ -108,8 +93,8 @@ export async function mountPanel(options = {}) {
         ])
       }
       if (target.includes('/api/dsh-agent-team-roles/team-log')) {
-        // 群聊视图每 TEAM_LOG_POLL_MS(4000) 拉一次宿主投影；默认回一份「读不到」，
-        // 视图就退回本地事件窗口（§5.50）。用例要测合并时给 teamLogReply。
+// 群聊视图每 TEAM_LOG_POLL_MS(4000) 拉一次宿主投影；默认回「读不到」，视图退回本地事件窗口。
+// 用例要测合并时给 teamLogReply。
         const produced = options.teamLogReply ? options.teamLogReply(target) : { __reply: true, status: 404, payload: {} }
         if (produced && produced.__reply === true) return jsonReply(produced.payload, produced.status)
         return jsonReply(produced)
@@ -125,7 +110,7 @@ export async function mountPanel(options = {}) {
     },
   }
   sandbox.document = { createElement: () => ({ style: {}, setAttribute() {}, appendChild() {}, addEventListener() {} }) }
-  // 用例可选：localStorage 桩（排序偏好「记在本机」）与 getComputedStyle 桩（§5.68 找滚动容器）。
+// 用例可选：localStorage 桩（排序偏好在本机）与 getComputedStyle 桩（找滚动容器）。
   if (options.localStorage !== undefined) sandbox.localStorage = options.localStorage
   if (options.getComputedStyle !== undefined) sandbox.getComputedStyle = options.getComputedStyle
 
@@ -136,8 +121,7 @@ export async function mountPanel(options = {}) {
 
   const plugin = entry.factory((name) => {
     if (name === 'react') return runtime.React
-    // 宿主自带的 markdown 渲染器（`lib/markdown.js` 里用 try/catch 包着 require）。
-    // 用例可以传一个「缺 labels 就抛」的假渲染器，来验 §5.67 的契约。
+// 宿主自带的 markdown 渲染器；用例可以传一个「缺 labels 就抛」的假渲染器验契约。
     if (name === '@deepseek-ai/dsh-client-ui-primitives') {
       if (options.primitives === undefined) throw new Error(`client-runtime: 没有为 require('${name}') 提供假实现`)
       return options.primitives
@@ -184,7 +168,7 @@ export async function mountPanel(options = {}) {
     settle: () => runtime.settle(),
     dispose: () => runtime.dispose(),
     text: () => textOf(runtime.tree),
-    // 详情字段： div > span(标签文本) + input（client.js:2382-2441，input 无 label 属性）
+// 详情字段：div > span(标签文本) + input（input 无 label 属性）。
     field(label) {
       let hit = null
       walk(runtime.tree, (node) => {
@@ -227,9 +211,8 @@ export async function mountPanel(options = {}) {
     },
   }
 
-  // 找一个「点了真会发出 set-switches / set-skills」的复选框（走 flushSwitches 那条
-  // 路，也就是 catch 里 await refresh() 的那条路）。面板里复选框很多，别的复选框走
-  // run()，拿它们测 B2 / E2 会假绿。
+// 找一个「点了真会发出 set-switches / set-skills」的复选框（走 flushSwitches 那条路）。
+// 面板里复选框很多，别的走 run()，拿它们测 B2 / E2 会假绿。
   async function findSwitchIndex() {
     const saved = net.commandReply
     net.commandReply = (body) => ({ state: statePayload(), action: body.action })
@@ -253,8 +236,7 @@ export async function mountPanel(options = {}) {
     }
   }
 
-  // p0 的用法：先探到下标，再在「会失败」的回包下点同一个下标。
-  // 返回 `{ index }`（p0 的用例拿这个字段重定位复选框），p1 直接用 findSwitchIndex 的纯下标。
+// p0 的用法：先探到下标，再在「会失败」的回包下点同一个下标；返回 { index } 供重定位。
   async function clickSwitchCheckbox() {
     const index = await findSwitchIndex()
     assert.ok(index !== null, '面板里没有找到会发出 set-switches / set-skills 的复选框，用例前提不成立')
@@ -279,8 +261,7 @@ export async function mountPanel(options = {}) {
     return net.commandCalls - before
   }
 
-  // 点「刷新」= run({action:'reload'})（client.js:2197），回包里带一份新的 state，
-  // adopt 之后 selected 变成新对象 —— 这正是 B1 的触发点。
+// 点「刷新」= run({action:'reload'})，回包带一份新 state，adopt 之后 selected 变成新对象——这正是 B1 的触发点。
   async function reloadWith(nextState) {
     net.state = nextState
     net.commandReply = (body) => ({ state: nextState, action: body.action })
@@ -292,9 +273,8 @@ export async function mountPanel(options = {}) {
   panel.clickSwitchCheckbox = clickSwitchCheckbox
   panel.reloadWith = reloadWith
 
-  // 注册表：`apply()` 装角色配置页（conversation.view / team-roles）与群聊视图
-  // （conversation.view / team-chat）。群聊那条是 apply 里 `fetchState()` 成功后
-  // 由 `chatTab.setHidden(false)` → `chatTab.mount()` 触发的，所以它一定也在 captured 里。
+// 注册表：apply() 装角色配置页与群聊视图。群聊那条是 apply 里 fetchState() 成功后
+// 由 chatTab.setHidden(false) → chatTab.mount() 触发的，所以它一定也在 captured 里。
   panel.registration = (id) => captured.find((item) => item.meta && item.meta.id === id)
   panel.registrations = () => captured.map((item) => item.meta && item.meta.id)
 

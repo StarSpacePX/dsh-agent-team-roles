@@ -1,4 +1,4 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // 技能列表面板。
 
 import { filterEntries, needleMatches, skillEntries } from './../entries.js';
@@ -7,7 +7,7 @@ import { React, h } from './../react.js';
 import { styles } from './../styles.js';
 
 function SkillsPanel({ role, skills, pending, onSet, needle = '', onlyChanged = false }) {
-  // §5.36 — 默认折叠，跟 MCP 那一块一样。
+// 默认折叠，跟 MCP 那一块一样。
   const [open, setOpen] = React.useState(false);
   const decision =
     role.skills || { mode: 'inherit', ids: [], dirs: [], missing: [], hasFilesystemRow: true, hasToolRow: true };
@@ -15,9 +15,8 @@ function SkillsPanel({ role, skills, pending, onSet, needle = '', onlyChanged = 
   const pick = decision.mode === 'pick';
   const available = (skills && skills.available) || [];
   const missing = decision.missing || [];
-  // §5.55 — the skill list obeys the ability column's filter box like every
-  // other block. The `missing` names are a deliberate choice that points at
-  // nothing on disk, so they only answer to the needle, not to 「只看改过的」.
+// 技能列表同样吃能力列的过滤框；missing 指向磁盘上故意不存在的东西，
+// 所以只响应 needle，不响应「只看改过的」。
   const availableShown = filterEntries(skillEntries(role, skills), needle, onlyChanged);
   const missingShown = missing.filter((name) => needleMatches(needle, name));
   const header = (text) =>
@@ -42,8 +41,7 @@ function SkillsPanel({ role, skills, pending, onSet, needle = '', onlyChanged = 
 
   const counting = pick ? `只挂勾选的 ${chosen.size} 个` : '继承这个模式的默认技能';
   const allChosen = available.length > 0 && available.every((skill) => chosen.has(skill.name));
-  // §5.49 — 这一个技能自己的 round trip：点一个技能只灰它自己那一行，
-  // 不会把 18 行 + 全选框一起变灰（user m13923）。
+// 这个技能自己的 round trip：点一个技能只灰它自己那一行，不会把 18 行 + 全选框一起变灰。
   const rowPending = (name) => pending !== undefined && pending.has(`skill:${name}`);
   const anyPending =
     pending !== undefined &&
@@ -54,10 +52,8 @@ function SkillsPanel({ role, skills, pending, onSet, needle = '', onlyChanged = 
     else next.delete(name);
     onSet({ mode: 'pick', ids: [...next] }, [`skill:${name}`]);
   };
-  // user m13289 1.「这里为啥没有全选？」—— 这一格现在和 MCP 那一行、各分组行
-  // 一样是全选（半选 = 只勾了一部分）。「勾上就是用、不勾就是不加载」原样照办：
-  // 全部不勾 = 这个角色一个技能都不加载；要回到「继承这个模式的默认技能」，
-  // 用下面那颗还原按钮（那是模式，不是名单）。
+// 这一格也是全选（半选 = 只勾了一部分）。勾上就是用、不勾就是不加载：
+// 全部不勾 = 这个角色一个技能都不加载；要回到这个模式的默认技能，用下面的还原按钮（那是模式，不是名单）。
   const onBulk = (on) => {
     const keys = available.map((skill) => `skill:${skill.name}`);
     return on
@@ -205,17 +201,8 @@ function SkillsPanel({ role, skills, pending, onSet, needle = '', onlyChanged = 
   );
 }
 
-/**
- * R2.3 — the MCP switch list.
- *
- * One row per MCP server *of this deployment*, read live from the
- * connector's own storage by the host half. A row here is not a new
- * connection: unchecking a server records the server name in the role's
- * `mcp.deny`, and the gateway row that carries that list mounts inside the
- * role and hides those tools for this agent only. The connector keeps
- * running, every other agent keeps seeing the server, and nothing is
- * disconnected — which is also why the switch is safe to flip while dsh is
- * live.
- */
+/** 本部署的 MCP server 名单：宿主侧从连接器自己的存储里实时读出来。
+ * 一行不是新建连接：取消勾选只是把 server 名记进角色的 mcp.deny，
+ * 由承载这份名单的 gateway 行在角色内挂载，只对这个 agent 藏掉那些工具。 */
 
 export { SkillsPanel };

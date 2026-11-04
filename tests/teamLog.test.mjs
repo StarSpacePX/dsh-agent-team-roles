@@ -1,12 +1,5 @@
-/**
- * Unit tests for the host-side 群聊 projection (§5.50).
- *
- * What matters here is that the projection is a *faithful fold of the log*:
- * latest-wins for whole-value records, delivery as a second pass, and no
- * invented rows. The host half's paging cursors are covered in
- * `tests/plugin/log.test.mjs` (the source assertions), because they need
- * a fake Session.
- */
+/** 宿主侧群聊投影的单元测试：投影必须是日志的忠实折叠 —— 整值记录取最新、送达是第二遍、不凭空造行。
+ * 宿主分页游标的源码断言在 tests/plugin/log.test.mjs（那边需要假 Session）。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -39,7 +32,7 @@ test('§5.50 the projection only knows the four team event types', () => {
   ])
 
   const log = createTeamLog()
-  // Ordinary Session traffic must leave no trace: no rows, no cursor move.
+// 普通会话流量不留痕：没有行，游标也不动。
   const applied = applyTeamEvents(log, [
     teamEvent('turn/start', { turn: 1 }, 0),
     teamEvent('assistant/message', { message: {} }, 1),
@@ -86,7 +79,7 @@ test('§5.50 delivery is a second pass, and deleting a task is a tombstone', () 
   applyTeamEvents(log, [
     teamEvent('team/message/queued', { version: 2, teamId: 't-1', message: message('msg-1', 'lead', 'lead', 'm-1') }, 20),
     teamEvent('team/message/queued', { version: 2, teamId: 't-1', message: message('msg-2', 'lead', 'lead', 'm-1') }, 21),
-    // Delivery of msg-2 lands *before* msg-1 in the log: order must not matter.
+// msg-2 的送达在日志里排在 msg-1 之前：顺序不能影响结果。
     teamEvent('team/message/delivered', { version: 2, teamId: 't-1', messageId: 'msg-2' }, 22),
     teamEvent('team/message/delivered', { version: 2, teamId: 't-1', messageId: 'msg-1' }, 23),
     teamEvent('team/task', { version: 2, teamId: 't-1', task: task('task-9', 'deleted') }, 24),
@@ -101,8 +94,7 @@ test('§5.50 a replayed enqueue keeps one row and takes the newest seq', () => {
   const log = createTeamLog()
   applyTeamEvents(log, [
     teamEvent('team/message/queued', { version: 2, teamId: 't-1', message: message('msg-1', 'lead', 'lead', 'm-1') }, 30),
-    // The same durable message re-appended by a replay (fork / folded history):
-    // duplicating it would double the bubble in the chat view.
+// 同一条持久消息被 replay 再追加一遍（fork / 折叠历史）：重复会让聊天气泡翻倍。
     teamEvent('team/message/queued', { version: 2, teamId: 't-1', message: message('msg-1', 'lead', 'lead', 'm-1') }, 41),
   ])
 
@@ -114,8 +106,7 @@ test('§5.50 a replayed enqueue keeps one row and takes the newest seq', () => {
 
 test('§5.50 messages come out in log order, not in Map insertion order', () => {
   const log = createTeamLog()
-  // Deliberately out of order: a replay can hand the projector a later enqueue
-  // first, and the timeline must still read left-to-right.
+// 故意乱序：replay 可能先给投影器一个更晚的入队，时间线仍要从左到右读。
   applyTeamEvents(log, [
     teamEvent('team/message/queued', { version: 2, teamId: 't-1', message: message('msg-b', 'm-1', 'alpha', 'lead') }, 52),
     teamEvent('team/message/queued', { version: 2, teamId: 't-1', message: message('msg-a', 'lead', 'lead', 'm-1') }, 51),
@@ -133,8 +124,7 @@ test('§5.50 folding is incremental: the same events applied twice are idempoten
   ]
   applyTeamEvents(log, events)
   const first = serializeTeamLog(log)
-  // The host reader hands the projector only the tail, but a repeated slice
-  // (retry, double poll) must not change the answer.
+// 宿主读取器只把尾巴交给投影器，但重复的切片（重试、双轮询）不能改变答案。
   applyTeamEvents(log, events)
   const second = serializeTeamLog(log)
   assert.deepEqual({ ...second, applied: first.applied }, first)
@@ -147,8 +137,7 @@ test('§5.50 one bad event never poisons the fold', () => {
   assert.equal(applyTeamEvent(log, { type: 'team/task', seq: 2 }), false)
   assert.equal(applyTeamEvent(log, undefined), false)
   assert.equal(log.lastSeq, -1, '被拒绝的事件不推进游标')
-  // A well-formed event that carries nothing still *is* a team event: it counts
-  // as applied and its seq moves the cursor — no row appears.
+// 形状正确却什么都没带的事件仍然是团队事件：算作已应用、游标前进，但不出现行。
   assert.equal(applyTeamEvent(log, { type: 'team/task', seq: 3, data: { task: null } }), true)
   assert.deepEqual(serializeTeamLog(log).tasks, [])
 })

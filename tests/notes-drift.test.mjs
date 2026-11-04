@@ -1,14 +1,6 @@
-// F5（task-9）——宿主 DEFAULT_NOTES 与客户端内联兜底文案的漂移测试。
-//
-// 背景：说明文字的真源是宿主 `lib/notes.js` 的 DEFAULT_NOTES，`/state` 的 notes.values 把它送到面板；
-// 客户端 `src/client/**` 里为了「宿主半还没重启 / 旧宿主没有这个键」逐字保留了同一份兜底文案。
-// F 记录 §4 的取舍：只加本漂移测试，不合并单一来源——客户端是独立 bundle，运行时拿不到宿主模块。
-//
-// 断言三件事：
-//   1. 客户端传给 describe/info/section 的键字面量必须都在 DEFAULT_NOTES 里（键集合）；
-//   2. 能静态配对的 (<键>, <兜底字面量>) 必须与 DEFAULT_NOTES[键] 逐字相等（文案一致）；
-//   3. 配对数量不低于 F5 落地时的观测值，防止解析器悄悄退化成「什么都不查」。
-// 静态配不出映射的调用点（运行期变量键、对象字面量查表）只列在 UNCHECKED，不硬造规则。
+/** 宿主 DEFAULT_NOTES 与客户端内联兜底文案的漂移测试。
+ * 真源是宿主 lib/notes.js；客户端是独立 bundle，运行时拿不到宿主模块，只能逐字保留兜底。
+ * 断言：客户端用到的键都在 DEFAULT_NOTES 里；能静态配对的兜底字面量必须与它逐字一致。 */
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'

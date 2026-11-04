@@ -1,5 +1,5 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
-// 容器第 3 段（原 2120-2256）：开关 burst 队列与提交。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
+// 容器第 3 段：开关 burst 队列与提交。
 
 import { SKILL_BURST_MS, SWITCH_BURST_MS } from './../constants.js';
 import { command } from './../net.js';
@@ -11,8 +11,7 @@ function useTeamRolesSwitches(core, drafts) {
   const flushSwitches = React.useCallback(async () => {
     const batch = queue.current;
     if (batch.timer !== null) clearTimeout(batch.timer);
-    // Synchronous take: `commitSwitches` relies on this, because it calls
-    // flush and then immediately starts filling the next batch.
+// 同步取出：commitSwitches 先 flush 再立刻开始填下一批，所以不能 async。
     queue.current = { roleId: null, rows: {}, mcp: {}, tools: {}, keys: new Set(), timer: null };
     if (batch.roleId === null || batch.keys.size === 0) return undefined;
 
@@ -31,7 +30,7 @@ function useTeamRolesSwitches(core, drafts) {
       });
       for (const key of batch.keys) markPending(key, false);
       writeDraft(batch.roleId, drop, { keepOtherRole: true });
-      // §B2 — 这次操作成功了，把上一次失败留下的提示收掉（失败提示改由 showError 计时）。
+// 成功就把上一次失败留下的提示收掉（失败提示由 showError 计时）。
       clearError();
       if (payload && payload.state) adopt(payload.state, true);
       else await refresh();
@@ -47,13 +46,10 @@ function useTeamRolesSwitches(core, drafts) {
     flushSwitches$.current = flushSwitches;
   }, [flushSwitches]);
 
-  /**
-   * The only way a switch changes: paint it now (draft), remember it in the
-   * queue, arm the burst timer. Nothing here awaits a request — that is what
-   * makes the checkbox follow the click instantly.
-   */
+/** 开关唯一的变更入口：先画（draft）、记进队列、开 burst 计时，
+ * 全过程不 await 请求 —— 勾选框才能跟手。 */
   const commitSwitches = (patch, keys) => {
-    // The user moved to another role: land the previous role's queue first.
+// 用户切到别的角色：先把上一个角色的队列落地。
     if (queue.current.roleId !== null && queue.current.roleId !== selectedId) {
       void flushSwitches();
     }
@@ -71,15 +67,9 @@ function useTeamRolesSwitches(core, drafts) {
     }, SWITCH_BURST_MS);
   };
 
-  /**
-   * §5.49 — 技能名单的队列（user m13923「单选时为啥整个技能列都灰色，还这么慢」）。
-   *
-   * Same shape as the switch queue above. The click paints its row through the
-   * `draft.skills` overlay,
-   * marks **that row** pending, and the burst timer folds a run of clicks
-   * into one `set-skills` — so one click on one skill never greys all 18
-   * rows plus the header box.
-   */
+/** 技能名单的队列，与上面开关同一个形状。
+ * 点击先经 draft.skills 画上，只把这一行标 pending，
+ * burst 计时器把一串点击并成一次 set-skills —— 点一个技能不会让整张表变灰。 */
   const skillsQueue = React.useRef({ roleId: null, mode: null, ids: null, keys: new Set(), timer: null });
 
   const flushSkills = React.useCallback(async () => {
@@ -97,7 +87,7 @@ function useTeamRolesSwitches(core, drafts) {
       });
       for (const key of batch.keys) markPending(key, false);
       writeDraft(batch.roleId, drop, { keepOtherRole: true });
-      // §B2 — 同 flushSwitches：成功即收掉上一次的失败提示。
+// 同 flushSwitches：成功即收掉上一次的失败提示。
       clearError();
       if (payload && payload.state) adopt(payload.state, true);
       else await refresh();
@@ -113,12 +103,8 @@ function useTeamRolesSwitches(core, drafts) {
     flushSkills$.current = flushSkills;
   }, [flushSkills]);
 
-  /**
-   * The only way a skill is ticked: paint it now (draft), remember the whole
-   * target list in the queue, arm the burst timer. `keys` is what greys for
-   * this round trip — one row for a single tick, every row for the header box
-   * or the restore key.
-   */
+/** 勾技能的入口：先画（draft）、把整个目标列表记进队列、开 burst 计时。
+ * keys 是这轮要变灰的行：单选只灰一行，表头勾选与还原键灰全部。 */
   const commitSkills = (next, keys) => {
     if (skillsQueue.current.roleId !== null && skillsQueue.current.roleId !== selectedId) {
       void flushSkills();
@@ -136,9 +122,8 @@ function useTeamRolesSwitches(core, drafts) {
     }, SKILL_BURST_MS);
   };
 
-  // the create row's optional id. `draftRoleId` is the full
-  // preset id (prefix included) that 「新建角色」 will send, and
-  // `draftMemberName` is what `spawn_teammate` must be called with.
+// 新建行的可选 id：draftRoleId 是完整 preset id（带前缀），
+// draftMemberName 是 spawn_teammate 要用的名字。
   return {
     commitSkills,
     commitSwitches,

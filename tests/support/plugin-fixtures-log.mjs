@@ -1,11 +1,4 @@
-/**
- * 领域夹具（施工批次 A–G 的测试共用）：角色定义、假 teammate、假 loader、名册与任务事件……
- *
- * 批次 F4：从 tests/plugin.test.mjs 顶部逐字搬来，只加 export 前缀；唯一的路径调整是
- * 夹具体里 `new URL('../lib/…')` 加深一层为 `'../../lib/…'`。假环境本身在 ../harness.mjs。
- *
- * @module dsh-agent-team-roles/tests/support/plugin-fixtures
- */
+/** 领域夹具：角色定义、假 teammate、假 loader、名册与任务事件……假环境本身在 ../harness.mjs。 */
 import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { TEAM_BUNDLE } from '../../lib/deployment.js'
@@ -15,22 +8,15 @@ import path from 'node:path'
 
 import { interpolateLikeDsh } from './plugin-fixtures-harness.mjs'
 
-/**
- * One fake live agent whose scope records every `systemPrompt.context()`
- * registration, the way the real service does
- * (`…\dsh-system-prompt\lib\index.js:266-268`), plus the two faces §5.44 needs:
- * a scope-level `on()` (Team events are published to observers collected from
- * the appending Session's own context, `…\dsh-session\lib\types\index.js:600`)
- * and `followup()`.
- */
+/** 一个假活 agent：scope 记下每次 systemPrompt.context() 注册，另给 §5.44 需要的两面——
+ * scope 级 on()（Team 事件发给 appending Session 自己的 context 收集来的观察者）与 followup()。 */
 
 export function fakeAgent() {
   const contexts = []
   const listeners = new Map()
   const notices = []
   const agent = {
-    // 名册互斥只看 cwd：假 agent 默认是**普通目录**的会话；用例要监察员工作区的会话时
-    // 自己改 `agent.session.header.cwd`（默认工作区见 `lib/host/arbiter-workspace.js`）。
+// 名册互斥只看 cwd：假 agent 默认是普通目录会话；要监察员工作区的会话时改 agent.session.header.cwd。
     session: { id: 'session-fake', header: { cwd: path.join(os.homedir(), 'Desktop', 'dsh'), agentPreset: 'user' } },
     ctx: {
       on(type, handler) {
@@ -116,12 +102,10 @@ export async function skillHome() {
   }
   const push = await write('push', '提交并推送')
   const pptx = await write('pptx', '做 PPT')
-  // A root entry that is itself a markdown file: `discoverRoot` accepts it, so
-  // the panel lists it — and the directory it mounts is the root.
+// 根本身是 markdown 文件：discoverRoot 接受它，面板就该列出来——而它挂的是它的父目录。
   const solo = path.join(home, 'skills', 'solo.md')
   await writeFile(solo, '---\nname: solo\ndescription: 单文件技能\n---\n', 'utf8')
-  // A directory with no SKILL.md is not a skill, and a file with no frontmatter
-  // is what the loader skips — neither may show up as one.
+// 目录里没有 SKILL.md 不算技能，文件没有 frontmatter 加载器会跳过——两个都不该出现。
   await mkdir(path.join(home, 'skills', 'empty-dir'), { recursive: true })
   await mkdir(path.join(home, 'skills', 'no-frontmatter'), { recursive: true })
   await writeFile(path.join(home, 'skills', 'no-frontmatter', 'SKILL.md'), '# 没有 frontmatter\n', 'utf8')

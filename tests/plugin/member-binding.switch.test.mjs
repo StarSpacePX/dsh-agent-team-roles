@@ -1,9 +1,5 @@
-/**
- * 成员绑定与角色名（§5.46 / §5.53 / 绑定开关）
- *
- * 批次 F4：从 tests/plugin.test.mjs 拆分而来。test() 回调体逐字未改，只有两类机械调整：
- * import 来源换成本目录的相对路径；测试体里 `new URL('../lib/…')` 加深一层为 `'../../lib/…'`。
- */
+/** 成员绑定与角色名、绑定开关。
+ * 从 tests/plugin.test.mjs 拆分而来（超 400 行红线），测试体只做了 import 路径加深一层的机械调整。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -12,7 +8,6 @@ import { ROSTER_ROLE_LINE, rosterText } from '../../lib/team-roster.js'
 import { call, withPlugin } from '../support/harness.mjs'
 import path from 'node:path'
 import { fakeChild, REVIEWER, LEAD_AGENT, createMember, CHINESE_ROLE, STATE_URL, COMMAND_URL } from '../support/plugin-fixtures.mjs'
-
 
 test('set-bind-members persists a document-level switch the UI can flip', async () => {
   await withPlugin(async ({ routes }) => {
@@ -24,7 +19,7 @@ test('set-bind-members persists a document-level switch the UI can flip', async 
     assert.equal(flipped.json.state.bindMembers, true)
     assert.equal(flipped.json.state.bindMembersSource, 'store')
 
-    // It is a document setting, so it must survive a reload from disk.
+// 它是文档级设置，必须能从磁盘重新载入后还在。
     const reloaded = await call(routes, COMMAND_URL, 'POST', { action: 'reload' })
     assert.equal(reloaded.json.state.bindMembers, true)
   }, REVIEWER)
@@ -90,8 +85,7 @@ test('set-bind-members rejects a missing or non-boolean flag', async () => {
 
 test('set-hide-chat-tab persists the R6 switch, defaulting to "shown"', async () => {
   await withPlugin(async ({ routes }, dir) => {
-    // Absent from disk means "show the tab": the client mounts it unless the
-    // host explicitly says otherwise, so an older roles.json keeps working.
+// 磁盘上缺省 = 显示页签：宿主没有明确说不要就挂载，旧 roles.json 继续能用。
     const before = await call(routes, STATE_URL)
     assert.equal(before.json.hideChatTab, false)
 
@@ -101,7 +95,7 @@ test('set-hide-chat-tab persists the R6 switch, defaulting to "shown"', async ()
     const stored = JSON.parse(await readFile(path.join(dir, 'roles.json'), 'utf8'))
     assert.equal(stored.settings.hideChatTab, true)
 
-    // A document setting must survive a reload from disk, and be flippable back.
+// 文档级设置必须能重载存活，也要能翻回去。
     const reloaded = await call(routes, COMMAND_URL, 'POST', { action: 'reload' })
     assert.equal(reloaded.json.state.hideChatTab, true)
     const shown = await call(routes, COMMAND_URL, 'POST', { action: 'set-hide-chat-tab', enabled: false })
@@ -117,15 +111,11 @@ test('set-hide-chat-tab rejects a missing or non-boolean flag', async () => {
       (await call(routes, COMMAND_URL, 'POST', { action: 'set-hide-chat-tab', enabled: 'yes' })).status,
       400,
     )
-    // The refused calls must not have written anything.
+// 被拒的调用不能写入任何东西。
     assert.equal((await call(routes, STATE_URL)).json.hideChatTab, false)
   }, REVIEWER)
 })
 
-/**
- * `registered` cannot show a mount failure: `register()` resolves with a disposer
- * whether or not the definition activated, and reports the failure as a `broken`
- * diagnostic on the registry's roster instead. §5.54 keeps that fact local — the
- * roster read (`presets.list()`) awaits the whole Host Loader while any row is
- * pending, so `/state` reports the mount health of *our* roles instead.
- */
+/** registered 看不出挂载失败：register() 无论定义是否激活都返回 disposer，
+ * 失败只体现为注册表 roster 上的 broken 诊断。这个事实留在本地 ——
+ * presets.list() 会 await 整个 Host Loader，所以 /state 只报我们自己角色的挂载健康。 */

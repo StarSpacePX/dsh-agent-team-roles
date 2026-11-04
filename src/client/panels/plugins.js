@@ -1,4 +1,4 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // 插件 / 工具门面板。
 
 import { filterEntries, groupTools, toolEntries } from './../entries.js';
@@ -16,9 +16,9 @@ function PluginsPanel({
   needle = '',
   onlyChanged = false,
 }) {
-  // §5.36 — 默认折叠，和 MCP / 技能两块一样。
+// 默认折叠，和 MCP / 技能两块一样。
   const [open, setOpen] = React.useState(false);
-  // §5.55 — 组也默认收起（67 个工具平铺出来就是这么来的），搜索时自动把匹配到的组摊开。
+// 组也默认收起（67 个工具平铺出来就是这么来的），搜索时自动把匹配到的组摊开。
   const [unfolded, setUnfolded] = React.useState(() => new Set());
   const capabilities = role.capabilities || {};
   const deny = new Set(((capabilities.toolGate || {}).deny) || []);
@@ -43,7 +43,7 @@ function PluginsPanel({
     );
   }
 
-  // §5.55 — same filter rule as every other block, from the same entries.
+// 与其它块同一条过滤规则，条目来自同一份。
   const entries = filterEntries(toolEntries(role, toolGate), needle, onlyChanged);
   const keep = new Set(entries.map((entry) => entry.key));
   const layout = groupTools(toolEntries(role, toolGate));
@@ -92,8 +92,8 @@ function PluginsPanel({
       ),
     );
 
-  // §5.55 — 组头那一行：一条标题 + 一个「整组一起开 / 关」的勾选框（半选 = 组里只关了
-  // 一部分）。点它写的还是逐个精确工具名，所以整组一次落盘、一次重建。
+// 组头一行：标题 + 一个「整组一起开 / 关」的勾选框（半选 = 组里只关了一部分）。
+// 点它写的还是逐个精确工具名，所以整组一次落盘、一次重建。
   const groupRow = (group) => {
     const total = group.members.length;
     const off = group.members.filter((entry) => entry.off).length;
@@ -216,21 +216,8 @@ function PluginsPanel({
   );
 }
 
-/**
- * R2.4 / R2.5 — the role's working directory: **one path, one restore key**.
- *
- * There is no loop path selector and no 「复制标准模式」 button here, and
- * neither could work: `agent-loop` cannot live inside a preset at all (it
- * owns the single agent-factory slot, so mounting one fails the whole
- * preset), and even if it could, the directory a task runs in is fixed when
- * the task is created — a preset has no `cwd` field to set.
- *
- * Nor is there an AGENTS.md selector (§5.31, user m07109):
- * the role owns one directory, its rules file is that directory's
- * `AGENTS.md`, and the host half already wires the role to it. So the panel
- * shows the path — to go and edit that file — and keeps exactly one restore
- * key, which re-copies the file from the main session and clears this role's
- * `agent-instructions` overrides in one move.
- */
+/** 角色的工作目录：一个路径、一个还原键。
+ * 没有 loop 路径选择器，也没有「复制标准模式」：agent-loop 根本住不进预设（它独占 agent-factory
+ * 槽位，挂一个进去整份预设都失败），而且任务的工作目录在任务创建时就定了。 */
 
 export { PluginsPanel };

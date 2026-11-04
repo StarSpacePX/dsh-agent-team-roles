@@ -1,20 +1,13 @@
-// B1 / B2 —— 客户端 P0 真行为测试（批次B）。
-//
-// 假环境（vm 求值 lib/client.js + 极简 React 运行时 + 拦截 fetch）已抽到
-// tests/client-runtime.mjs，与 p1-client.test.mjs 共用；本文件只剩这 7 条用例。
-//
-// 为什么不是源码正则断言：B1 的病根在 effect 的依赖数组（对象引用每次回包都变），
-// B2 的病根在异步时序（失败提示先 setError、紧接着的 refresh 又 setError('')）。
-// 正则断言只能证明「代码里写着某句话」，证明不了「用户看到的东西变了」。
+// 客户端 P0 真行为测试（B1 草稿不被回包抹掉 / B2 失败提示不被 refresh 抹掉）。
+// 假环境（vm 求值 lib/client.js + 极简 React 运行时 + 拦截 fetch）在 tests/client-runtime.mjs。
+// 不用源码正则断言：B1 病根在 effect 依赖、B2 在异步时序，正则只能证明「代码里写着某句话」。
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { BURST_WAIT_MS, mountPanel, role, secondRole, sleep, statePayload } from './support/client-runtime.mjs'
 
-// ---------------------------------------------------------------------------
-// B1 —— 编辑中的名字/描述/排序不能被任意 /state 回包抹掉
-// ---------------------------------------------------------------------------
+// ---- B1 —— 编辑中的名字 / 描述 / 排序不能被任意 /state 回包抹掉 ----
 
 test('B1: 正在编辑的名字，不会被一次 /state 刷新抹掉', async () => {
   const panel = await mountPanel()
@@ -25,8 +18,7 @@ test('B1: 正在编辑的名字，不会被一次 /state 刷新抹掉', async ()
     await panel.settle()
     assert.equal(panel.input('名字').props.value, 'PROBE-甲', '本地编辑没有生效')
 
-    // 服务端数据一个字都没变，只是把面板上「刷新」按了一下
-    // （client.js:2197 → run({action:'reload'}) → 回包里的 state 再 adopt 一次）。
+// 服务端数据一个字都没变，只是把面板上的「刷新」按了一下（reload 后回包再 adopt 一次）。
     await panel.reloadWith(statePayload())
 
     assert.equal(
@@ -58,7 +50,7 @@ test('B1: 正在编辑的描述与排序，同样不会被 /state 刷新抹掉',
 test('B1: 正在编辑的角色 ID，不会被一次 /state 刷新抹掉', async () => {
   const panel = await mountPanel()
   try {
-    // id 框显示的是**裸成员名**（role id `team-select` 去掉 `presetPrefix` `team-`）。
+// id 框显示的是裸成员名（role id team-select 去掉 presetPrefix team-）。
     assert.equal(panel.input('角色 ID（成员名）').props.value, 'select')
 
     panel.input('角色 ID（成员名）').props.onChange({ target: { value: 'probe-id' } })
@@ -67,12 +59,9 @@ test('B1: 正在编辑的角色 ID，不会被一次 /state 刷新抹掉', async
 
     await panel.reloadWith(statePayload())
 
-    // 这个框的 onChange 被 tests/plugin/role-id.test.mjs:55 的源码形状断言锁着，改不了，
-    // 所以 client.js 用「idDraft 偏离同步基线」来标 dirty：这里断言那条路径真的生效。
-    //
-    // 注意这次回包里**别的字段变了**（描述），同步 effect 的依赖确实变了、一定会重跑 ——
-    // 否则「草稿还在」证明不了任何机制（服务端值一个都没变时 effect 压根不跑，
-    // 突变检查就是这样骗过第一版的：把 dirty 机制整个拆掉这条用例照样绿）。
+// 这个框的 onChange 被源码形状断言锁着改不了，所以 client.js 用「idDraft 偏离同步基线」标 dirty，
+// 这里断言那条路径真的生效。回包里别的字段变了，同步 effect 一定会重跑 ——
+// 否则「草稿还在」证明不了任何机制。
     await panel.reloadWith(statePayload([role({ description: '服务端改过的描述' }), secondRole()]))
 
     assert.equal(
@@ -80,8 +69,8 @@ test('B1: 正在编辑的角色 ID，不会被一次 /state 刷新抹掉', async
       'probe-id',
       '一次 /state 回包把用户正在编辑的角色 ID 抹掉了',
     )
-    // 逐字段 dirty 的第二个要求：没在编辑的字段必须照常跟服务端走。
-    // 按角色记 dirty 的实现会在这里留下旧描述，接着「保存」就把旧值写回服务端。
+// 逐字段 dirty 的第二个要求：没在编辑的字段必须照常跟服务端走。
+// 按角色记 dirty 的实现会留下旧描述，接着「保存」就把旧值写回服务端。
     assert.equal(
       panel.input('描述').props.value,
       '服务端改过的描述',
@@ -111,7 +100,7 @@ test('B1: 切换角色后，编辑框显示目标角色的服务端值而不是�
     panel.input('名字').props.onChange({ target: { value: 'PROBE-甲的草稿' } })
     await panel.settle()
 
-    // 角色行现在只有一行 `英文名(中文名)`（用户 m04536），点它 = 点这一行。
+// 角色行只有一行 `英文名(中文名)`，点它 = 点这一行。
     await panel.click('devtest(开发测试)')
     assert.equal(panel.input('名字').props.value, '开发测试', '切到另一个角色后，编辑框应该显示这个角色的值')
   } finally {
@@ -119,9 +108,7 @@ test('B1: 切换角色后，编辑框显示目标角色的服务端值而不是�
   }
 })
 
-// ---------------------------------------------------------------------------
-// B2 —— 失败提示不能被紧接着的 refresh 抹掉
-// ---------------------------------------------------------------------------
+// ---- B2 —— 失败提示不能被紧接着的 refresh 抹掉 ----
 
 test('B2: /command 失败后，错误提示不会被随后自动执行的 refresh 抹掉', async () => {
   const panel = await mountPanel()

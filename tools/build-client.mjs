@@ -1,31 +1,14 @@
-/**
- * `dsh-agent-team-roles` 客户端半的构建器（零依赖，只用 Node 内置模块）。
- *
- * 为什么需要它：宿主模块系统按 `package.json` 的 `exports["./client"]` 取件
- * （`lib/client.js` 必须是**一个**文件，见 `Source/DSH/packages/client/modules/src/index.ts:803-805`），
- * 官方靠 tsdown 把 `src/client/**` 打成单文件，本插件没有构建链，所以这里用一个
- * 可复现的极简打包器代替：源码正常分模块写，构建产出单文件。
- *
- * 支持的 ESM 子集（故意收窄，越界即构建失败，不允许悄无声息地发生）：
- *   import { a, b as c } from './x.js'      // 单行、相对路径、必须带 .js
- *   import * as ns from './x.js'
- *   export { a, b as c };
- * 不支持的写法（`export function`、`export const`、`export default`、`export * from`、
- * 动态 `import()`、非相对说明符）一律抛错 —— 声明一律写成普通 `const`/`function`，
- * 在文件末尾用一条 `export { … }` 显式列出对外符号。
- *
- * 用法：
- *   node tools/build-client.mjs            # 构建，写 lib/client.js
- *   node tools/build-client.mjs --check    # 只校验磁盘产物与源码一致，不一致 exit 1
- */
+/** dsh-agent-team-roles 客户端半的构建器（零依赖，只用 Node 内置模块）。
+ * 宿主按 package.json 的 exports["./client"] 取件，lib/client.js 必须是一个文件。
+ * 这里用可复现的极简打包器代替 tsdown：源码正常分模块写，构建产出单文件。
+ * 支持的 ESM 子集故意收窄，越界即构建失败，不允许悄无声息地发生。 */
 
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
-// `TEAM_CLIENT_ROOT` 是测试缝：自检用例在临时目录里造一套 src/client/**，指到这里跑，
-// 否则「构建器本身」这条路永远驱动不到真源码。
+// TEAM_CLIENT_ROOT 是测试缝：自检用例在临时目录造一套 src/client/** 指到这里跑。
 const ROOT = process.env.TEAM_CLIENT_ROOT
   ? path.resolve(process.env.TEAM_CLIENT_ROOT)
   : path.join(HERE, '..')
@@ -87,8 +70,8 @@ function transform(id, text) {
       continue
     }
     const where = `${id}:${index + 1}`
-    // 动态 import() 也不在支持子集内：说明符在运行时才算出来，构建器解析不了，
-    // 静默放过只会在浏览器里变成「未知模块」。注释行不算。
+// 动态 import() 不在支持子集内：说明符运行时才算出来，构建器解析不了，
+// 静默放过只会在浏览器里变成「未知模块」。
     const isComment = trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')
     if (!isComment && /(?<![\w$.])import\s*\(/.test(line)) {
       throw new Error(`client 源码用了构建器不支持的动态 import()（${where}）：${trimmed}`)
@@ -134,8 +117,8 @@ async function collect() {
       }
       if (!entry.name.endsWith('.js')) continue
       const id = `./${path.relative(SRC, full).split(path.sep).join('/')}`
-      // 源码可能带 UTF-8 BOM（PowerShell `Set-Content -Encoding UTF8` 就会写），
-      // 不剥掉的话第一行的 `import` 判定会失配、整个模块静默不转译。
+// 源码可能带 UTF-8 BOM（PowerShell Set-Content -Encoding UTF8 就会写），
+// 不剥掉的话第一行 import 判定会失配、整个模块静默不转译。
       modules.set(id, (await readFile(full, 'utf8')).replace(/^\uFEFF/, ''))
     }
   }

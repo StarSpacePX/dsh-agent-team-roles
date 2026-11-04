@@ -1,30 +1,8 @@
 /**
- * Refresh the four *test fixtures* `tests/fixtures/presets/<mode>.plugins.json`
- * from the installed dsh agent presets.
- *
- * §5.62 — the plugin no longer ships a copy of any mode. At runtime a role's
- * composition is read live out of the Loader (`../lib/live-template.js`), so
- * nothing here is on the plugin's own path. These four files are **test data**:
- * the harness plays the deployment and needs some declaration to play, and
- * pinning it means an assertion failure always means our code changed, never
- * that the machine happened to be on a different dsh.
- *
- * That is also why this tool is deliberately *not* wired into `npm test`: a dsh
- * upgrade must not turn the suite red. Run it by hand when you want the fixtures
- * to follow a new deployment, then review the diff like any other change.
- *
- * JSON cannot carry `!!js`, so each gated scalar becomes `{ "__js__": <expr> }`
- * and is resolved by `resolveGate()` in `../lib/template.js` at compose time.
- *
- * Usage:
- *   node tools/sync-presets.mjs                    # refresh all four fixtures
- *   node tools/sync-presets.mjs --check            # compare, writes nothing
- *   node tools/sync-presets.mjs --only ptc         # one mode
- *   node tools/sync-presets.mjs <path>/x.patch.yml # one file, see below
- *
- * A positional path is taken as the preset file of the mode named by `--only`
- * (default `standard`) — that is how a hand-built or relocated deployment is
- * snapshotted without editing this script.
+ * 刷新 tests/fixtures/presets/<mode>.plugins.json 四份测试夹具。
+ * 运行时角色组合从 Loader 现场读取，这四份只是测试的输入；不接进 npm test，
+ * dsh 升级不能让测试变红，需要时手工跑再 review diff。
+ * 用法：node tools/sync-presets.mjs [--check] [--only <mode>] [<preset.yml>]
  */
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
@@ -38,12 +16,11 @@ import { MODES } from '../lib/template.js'
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = path.join(HERE, '..', 'tests', 'fixtures', 'presets')
 
-/** Snapshot file for one mode. */
 function outPath(mode) {
   return path.join(OUT_DIR, `${mode}.plugins.json`)
 }
 
-/** Candidate deployments, newest-first, so the tool works without arguments. */
+/** 候选部署，新→旧，无参数时按这个顺序找。 */
 function candidateDshRoots() {
   const roots = []
   if (process.env.DSH_INSTALL_ROOT) roots.push(process.env.DSH_INSTALL_ROOT)
@@ -63,7 +40,7 @@ function locatePreset(mode, explicit) {
   throw new Error(`${mode}.patch.yml not found; pass its path as the first argument`)
 }
 
-/** The dsh deployment that owns the preset — also where `js-yaml` lives. */
+/** 拥有该 preset 的部署，js-yaml 也从这里解析。 */
 function locateRequireAnchor(presetPath) {
   let dir = path.dirname(presetPath)
   while (dir !== path.dirname(dir)) {
@@ -74,14 +51,14 @@ function locateRequireAnchor(presetPath) {
 }
 
 function loadYaml(presetPath) {
-  // `js-yaml` is a dependency of the dsh deployment, not of this plugin, so it
-  // is resolved from the deployment rather than from this file's own location.
+// js-yaml 是 dsh 部署的依赖而不是本插件的，所以从部署目录解析，
+// 不能按本文件的位置去找。
   const anchor = locateRequireAnchor(presetPath)
   const require = createRequire(anchor)
   return require('js-yaml')
 }
 
-/** `!!js <expr>` → `{ __js__: '<expr>' }`; anything else keeps its default tag. */
+/** `!!js <expr>` → `{ __js__: '<expr>' }`，其它 tag 原样保留。 */
 function jsTypeFor(yaml) {
   return new yaml.Type('tag:yaml.org,2002:js', {
     kind: 'scalar',
@@ -90,12 +67,7 @@ function jsTypeFor(yaml) {
   })
 }
 
-/**
- * Snapshot source metadata minus `extractedAt` (changes every run) and minus
- * `file` (an absolute path on the maintainer's machine — it is provenance the
- * fixtures never read, and committing it would leak the author's home directory
- * into a public repository and make the snapshot look machine-specific).
- */
+/** 去掉 extractedAt（每次都变）与 file（本机绝对路径，不能提交进公开仓库）。 */
 function sourceOf(snapshot) {
   const { declarationId, plugin, presetId, order } = snapshot.source
   return { declarationId, plugin, presetId, order }
@@ -105,7 +77,6 @@ function byId(rows) {
   return new Map(rows.map((row) => [row.id, row]))
 }
 
-/** Re-extract one mode's preset into the snapshot shape `parseSnapshot` reads. */
 async function extract(mode, explicit) {
   const presetPath = locatePreset(mode, explicit)
   const yaml = loadYaml(presetPath)
@@ -135,11 +106,7 @@ async function extract(mode, explicit) {
   return { mode, presetPath, snapshot, rows, nested }
 }
 
-/**
- * Compare a freshly extracted snapshot against the one on disk, writing nothing.
- * Reports the differences and sets a non-zero exit code, so an upgrade review
- * has one command to run.
- */
+/** 只比对不写盘，有差异就非 0 退出。 */
 async function reportDrift({ mode, presetPath, snapshot, rows, nested }) {
   let existing
   try {
@@ -200,8 +167,7 @@ if (only !== undefined && !MODES.some((mode) => mode.id === only)) {
 const wanted = only === undefined ? MODES.map((mode) => mode.id) : [only]
 
 for (const mode of wanted) {
-  // A positional path only makes sense for a single preset, so it applies to
-  // the mode being extracted — `standard` unless `--only` said otherwise.
+// 位置参数只对单个 preset 有意义，作用在 --only 选中的模式上。
   const result = await extract(mode, explicit)
   if (checkOnly) await reportDrift(result)
   else await write(result)

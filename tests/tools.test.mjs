@@ -1,23 +1,6 @@
-/**
- * Coverage for `tools/extract-deployment.mjs --check`.
- *
- * The check was red in both of its forms before this file existed, and for two
- * unrelated reasons (see Docs/teams优化-C批次实施记录.md):
- *
- *  - no argument: two profiles declared the same `agent-loop` row and the tool
- *    refused the ambiguity instead of accepting that one deployment has one
- *    value;
- *  - explicit argument: the comparison tuple included provenance (`patch`,
- *    `profile`), and the explicit branch sets `profile: null`, so it could
- *    never match — the printed diff even showed the one field that had *not*
- *    changed.
- *
- * The tool is a CLI at module scope (importing it would execute the run), so
- * these tests drive it the way a user does: spawn it and read the exit code.
- * The fixture patches are generated from the shipped snapshot, so they cannot
- * go stale, and they live inside the plugin directory so the tool's
- * `js-yaml`-from-the-owning-deployment lookup still resolves.
- */
+/** 覆盖 tools/extract-deployment.mjs --check。它曾因两个互不相干的原因同时红：
+ * 不带参数时两个 profile 声明了同一 agent-loop 行（工具拒绝了歧义，而不是接受「一个部署一个值」）；
+ * 以及显式参数那条路。这里把这两种情况都钉住。 */
 
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
@@ -83,9 +66,8 @@ test('C1: --check 带显式 patch 时，内容一致即 exit 0（修复前因 pr
 })
 
 test('C1: profile patch 里出现 !!js 门时仍能解析（预设副本会带进来）', async () => {
-  // 用户把自己的预设副本插进 cordis.patch.yml 后，那份补丁里会出现 `!!js` 平台门
-  // （`disabled: !!js process.platform === 'win32'`）。裸 js-yaml 会抛
-  // `unknown tag !<tag:yaml.org,2002:js>`，于是 --check 直接崩 —— 工具必须自己注册这个标签。
+// 用户把自己的预设副本插进 cordis.patch.yml 后，补丁里会出现 !!js 平台门。
+// 裸 js-yaml 会抛 unknown tag !<tag:yaml.org,2002:js>，--check 直接崩 —— 工具必须自己注册这个标签。
   const dir = await scratch()
   try {
     const file = path.join(dir, 'gated.cordis.patch.yml')
@@ -165,10 +147,9 @@ test('C1: 两个 profile 的 agent-loop 行真的不同才报错，并列出各�
       await writeFile(path.join(dir, 'cordis.patch.yml'), patchFor(row), 'utf8')
     }
 
-    // 快照里的来源故意指向一个不存在的文件：没有「记录下来的来源」可跟随时，
-    // 扫描才是唯一依据，真歧义必须报错。仓里那份快照记的是**相对 DSH_HOME**
-    // 的路径（开源形态），在临时 home 下会解析到 web 那份而不再有歧义 —— 所以
-    // 这一条用例得自带一个失效来源的快照，才测得到原本要测的东西。
+// 快照里的来源故意指向不存在的文件：没有「记录下来的来源」可跟随时，扫描才是唯一依据，真歧义必须报错。
+// 仓里那份快照记的是相对 DSH_HOME 的路径（开源形态），在临时 home 下会解析到 web 那份、不再有歧义。
+// 所以这条用例自带一份失效来源的快照，才测得到原本要测的东西。
     const out = path.join(outDir, 'deployment.json')
     await writeFile(
       out,
@@ -203,8 +184,7 @@ test('A: --check 先跟随快照记录的来源，本机别的 profile 值不同
     const out = path.join(outDir, 'deployment.json')
     await writeFile(out, JSON.stringify({ source: { patch: web, profile: 'web' }, loop }, null, 2), 'utf8')
 
-    // 没有这条时，web 与 teamtest 内容不同会让扫描直接抛错 —— 也就是 2026-09-29
-    // 本机 `web` 被调到 10、`teamtest` 还是 5 之后 `npm test` 末尾那一步的处境。
+// 没有这条时，web 与 teamtest 内容不同会让扫描直接抛错（两个 profile 值不同步的处境）。
     const { status, stdout, stderr } = run(['--check'], { DSH_HOME: home, TEAM_DEPLOYMENT_SNAPSHOT: out })
     assert.equal(status, 0, `${stdout}\n${stderr}`)
     assert.match(stdout, /--check: in sync with/)
@@ -249,21 +229,19 @@ test('A: 记录的来源在别的 DSH_HOME 下时不算数（测试夹具不会�
   const outDir = await scratch()
   try {
     const loop = await snapshotLoop()
-    // 一个「别的地方的 DSH_HOME」：故意写成一个不存在的用户目录，不写作者本机的真路径。
+// 一个「别的地方的 DSH_HOME」：故意写成不存在的用户目录，不写作者本机的真路径。
     const real = path.join(path.sep === '\\' ? 'C:\\Users\\somebody' : '/home/somebody', '.dsh', 'profiles', 'web', 'cordis.patch.yml')
     const out = path.join(outDir, 'deployment.json')
     await writeFile(out, JSON.stringify({ source: { patch: real, profile: 'web' }, loop }, null, 2), 'utf8')
 
-    // 临时 home 里只有一个 profile，所以扫描有唯一答案：它会拿这个 home 的行去比，
-    // 而不是偷偷读那条记录里的真机路径。
+// 临时 home 里只有一个 profile，扫描因此有唯一答案：它拿这个 home 的行去比，不偷偷读记录里的真机路径。
     const dir = path.join(home, 'profiles', 'web')
     await mkdir(dir, { recursive: true })
     await writeFile(path.join(dir, 'cordis.patch.yml'), patchFor(loop), 'utf8')
 
     const { status, stdout, stderr } = run(['--check'], { DSH_HOME: home, TEAM_DEPLOYMENT_SNAPSHOT: out })
     assert.equal(status, 0, `${stdout}\n${stderr}`)
-    // 比的是临时 home 那一份：`in sync with` 那行必须指向 `.tmp-tools-*`。
-    // 记录里的真机路径只会出现在 `note:` 那一行（那是既有的 provenance 提示）。
+// 比的是临时 home 那一份：in sync with 那行必须指向 .tmp-tools-*；记录里的真机路径只出现在 note: 那行。
     assert.match(
       stdout,
       /^--check: in sync with .*\.tmp-tools-[^\\/]*[\\/]profiles[\\/]web[\\/]cordis\.patch\.yml/m,
@@ -279,13 +257,10 @@ test('C2: package.json 的 test 脚本接入唯一的 --check 与全部测试文
   const pkg = JSON.parse(await readFile(path.join(PLUGIN, 'package.json'), 'utf8'))
   const script = pkg.scripts.test
   assert.match(script, /tools\/extract-deployment\.mjs --check/, 'extract-deployment --check 未接入 npm test')
-  // §5.62 — `extract-template --check` 已经退场：插件不再自带模式快照，模式的
-  // 组合是运行时从 Loader 读的（`lib/live-template.js`），没有可漂移的抄本。
+// extract-template --check 已退场：插件不再自带模式快照，组合是运行时从 Loader 读的，没有可漂移的抄本。
   assert.doesNotMatch(script, /tools\/extract-template\.mjs/, 'extract-template 已退场，不该还在 npm test 里')
-  // 批次A/B 各自新增的套件也必须在这里，否则它们的用例根本不会被 npm test 跑到
-  // ——`tools/extract-*.mjs --check` 从来没人调用，就是这条断言的由来。
-  // 期望值**动态扫描**而不是硬编码清单：批次 F4 把 plugin.test.mjs 拆进 tests/plugin/ 后，
-  // 硬编码的 `'plugin'` 立刻悬空 —— 那正是这次翻车的形态。
+// 各批次新增的套件也必须在这里，否则它们的用例根本不会被 npm test 跑到。
+// 期望值动态扫描而不是硬编码清单：拆分文件后硬编码的目录名会立刻悬空。
   const testsDir = path.join(PLUGIN, 'tests')
   const expected = new Set([
     ...(await readdir(testsDir)).filter((name) => name.endsWith('.test.mjs')),
@@ -311,9 +286,8 @@ test('LOOP_ID 常量与被快照的行一致，快照本身可被解析', async 
   assert.ok(snapshot.loop.config !== null && typeof snapshot.loop.config === 'object')
 })
 
-// 开源移植性（2026-11-05）：提交进仓库的 `source.patch` 是**相对 DSH_HOME** 的路径，
-// 这样快照在任何机器上都可解析，也不会把作者的用户名写进包里。绝对路径（本机重新
-// 生成后的形态）继续支持，两种形态都要能定位到同一份补丁。
+// 开源移植性：提交进仓库的 source.patch 用相对 DSH_HOME 的路径，快照在任何机器上都可解析、
+// 也不会把作者用户名写进包里。绝对路径（本机重新生成后的形态）继续支持，两种都要定位到同一份补丁。
 test('P1: 记录的来源是相对 DSH_HOME 的路径时也能跟随（开源形态）', async () => {
   const home = await scratch()
   const outDir = await scratch()
@@ -330,7 +304,7 @@ test('P1: 记录的来源是相对 DSH_HOME 的路径时也能跟随（开源形
     const { status, stdout, stderr } = run(['--check'], { DSH_HOME: home, TEAM_DEPLOYMENT_SNAPSHOT: out })
     assert.equal(status, 0, `${stdout}\n${stderr}`)
     assert.match(stdout, /^--check: in sync with .*\.tmp-tools-[^\\/]*[\\/]profiles[\\/]web[\\/]cordis\.patch\.yml/m)
-    // 记录的就是当前读取的那一份，不该再出现 provenance 提示。
+// 记录的就是当前读取的那一份，不该再出现 provenance 提示。
     assert.doesNotMatch(stdout, /note: the snapshot records/)
   } finally {
     await rm(home, { recursive: true, force: true })
@@ -338,9 +312,9 @@ test('P1: 记录的来源是相对 DSH_HOME 的路径时也能跟随（开源形
   }
 })
 
-// 开源移植性：`npm test` 在别人的机器上必须能跑。找不到可比对的部署时（没有 profile
-// 补丁，或没有 profile 声明 agent-loop），`--check` 打印一行 SKIP 并 exit 0 —— 可见的
-// 跳过，不是静默通过；不带 --check 的重新生成依旧严格报错。
+// npm test 在别人的机器上必须能跑：找不到可比对的部署时（没有 profile 补丁、或没有 profile 声明
+// agent-loop），--check 打印一行 SKIP 并 exit 0 —— 可见的跳过，不是静默通过；
+// 不带 --check 的重新生成依旧严格报错。
 test('P1: 没有可比对的部署时 --check 可见跳过而非把 npm test 弄红', async () => {
   const home = await scratch()
   try {
@@ -357,8 +331,8 @@ test('P1: 没有可比对的部署时 --check 可见跳过而非把 npm test 弄
     assert.equal(noRow.status, 0, `${noRow.stdout}\n${noRow.stderr}`)
     assert.match(noRow.stdout, /^--check: SKIP — /m)
 
-    // 但重新生成没有 --check 时仍然严格报错（不许拿空部署覆盖快照）。
-    // 快照输出指到临时目录：这一条断言的是「报错」，不能顺手改写仓里的快照。
+// 但重新生成不带 --check 时仍严格报错（不许拿空部署覆盖快照）；
+// 快照输出指到临时目录：这条断言的是「报错」，不能顺手改写仓里的快照。
     const out = path.join(home, 'out', 'deployment.json')
     const regenerate = run([], { DSH_HOME: home, TEAM_DEPLOYMENT_SNAPSHOT: out })
     assert.notEqual(regenerate.status, 0, regenerate.stdout)

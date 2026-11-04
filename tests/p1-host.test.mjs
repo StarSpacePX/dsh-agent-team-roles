@@ -1,13 +1,6 @@
-/**
- * §5.58 D1 — the creation window is a monkey patch on `agents`, a process-wide
- * service that ACP / headless / SDK all share. These tests pin the two things
- * that make it survivable:
- *
- *   1. the wrapper only speaks the single-object signature it was built for —
- *      any other call shape goes through untouched;
- *   2. unloading never leaves our shell alive on the chain and never tears down
- *      a wrapper a later plugin installed on top of ours.
- */
+/** 创建窗口是对 agents（ACP / headless / SDK 共用的进程级服务）打的 monkey patch。
+ * 这些用例钉住让它可存活的两件事：包装只认它针对的那一种单对象签名，其它调用形状原样放过；
+ * 卸载之后链上不留我们的壳。 */
 import assert from 'node:assert/strict'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -109,8 +102,7 @@ test('D1: 非单对象形状的调用原样透传，绝不静默改写', async (
     await harness.agents.create('nope')
     assert.equal(harness.creation.at(-1).params, 'nope')
 
-    // 数组哪怕被挂上了 sessionId / parentAgent，也不是上游 `create(options)` 的形状：
-    // 我们不能把它展开成一个新对象再递下去。
+// 数组哪怕被挂了 sessionId / parentAgent，也不是上游 create(options) 的形状：不能展开成新对象再递下去。
     const arrayish = []
     arrayish.sessionId = 'child-3'
     arrayish.parentAgent = { sessionId: 'lead-1' }
@@ -119,10 +111,7 @@ test('D1: 非单对象形状的调用原样透传，绝不静默改写', async (
   })
 })
 
-/**
- * `withPlugin`'s `call()` cannot set request headers, and §5.58 D2 is entirely
- * about a request header — so this drives the registered route directly.
- */
+/** withPlugin 的 call() 设不了请求头，而 D2 整件事就是一个请求头，所以这里直接打注册的路由。 */
 async function hitState(harness, headers = {}) {
   const route = harness.routes.get(`exact ${STATE_URL}`)
   assert.ok(route, '/state 路由没注册')
@@ -217,12 +206,8 @@ function childWithLabel(label) {
   return { session: { ownEvents: () => [{ type: 'subagent/descriptor', data: { label } }] } }
 }
 
-/**
- * §5.58 D3 — the creation window must *select* a role, and `composeFrom` cannot
- * do that: it only joins the *parent's* standing mount and takes no preset id
- * (`Source\DSH\packages\preset\agent-presets\src\index.ts:484-493`). These pin
- * the semantics we rely on instead of the one we cannot use.
- */
+/** 创建窗口必须**选中**一个角色，而 composeFrom 做不到：它只接入父级当前的挂载、不收 preset id。
+ * 这里钉住我们依赖的语义。 */
 test('D3: 子上下文已经 compose 到同一角色时，不再重复 select', async () => {
   await withWindow(async (harness) => {
     const created = await call(harness.routes, COMMAND_URL, 'POST', { action: 'create-role', name: 'Reviewer' })
@@ -286,12 +271,9 @@ test('D3: 我们绝不改写 meta.agentPreset（那是记录字段，不是选�
   })
 })
 
-/**
- * §5.58 D4 — 「两份 AGENTS.md」只在 override 失效时出现。角色目录就住在 `~/.dsh`
- * 里面，所以「同目录候选」和「user-global 候选」会指向同一位置；上游跨目录不去重
- * （`…\dsh-agent-instructions\lib\index.js:632`），一旦让位就是同一份内容注入两遍。
- * 这里锁住让位的条件：只有**指向别处**的 dshHome 才让位。
- */
+/** 「两份 AGENTS.md」只在 override 失效时出现：角色目录就住在 ~/.dsh 里，同目录候选与 user-global 候选
+ * 指向同一位置，上游跨目录不去重，一旦让位就是同一份内容注入两遍。
+ * 这里锁住让位的条件：只有**指向别处**的 dshHome 才让位。 */
 test('D4: dshHome 只在指向别处时让位，null / 空串仍然走角色目录 override', () => {
   const roleHome = path.join('C:', 'data', 'team-a')
 

@@ -1,46 +1,41 @@
-/**
- * 角色 ID 编辑（§5.56「新建角色」那一行 / §5.57 详情面板改 id）
- *
- * 来源：`tests/plugin/ui-and-log.test.mjs`。这两条都是「用户打的裸名字 → 完整角色 id」的
- * 客户端形状断言，与面板主题相邻但各自独立，故单独成文件。
- */
+/** 角色 ID 编辑（「新建角色」那一行 / 详情面板改 id）。
+ * 两条都是「用户打的裸名字 → 完整角色 id」的客户端形状断言，单独成文件。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
-// 「既然成员名称必须是英文，那你再给一行设置 id 不就行了」(user m20207)：§5.56 角色 id 就是
-// 成员名加 `team-` 前缀。「新建角色」那一行有 id 输入框，敲下去就先显示最终 id 与成员名。
+// 角色 id 就是成员名加 team- 前缀。「新建角色」那一行有 id 输入框，敲下去就先显示最终 id 与成员名。
 
 test('§5.56 the create-role row takes an explicit English id', async () => {
   const source = await readFile(new URL('../../lib/client.js', import.meta.url), 'utf8')
   assert.match(source, /const \[newId, setNewId\] = React\.useState\(''\)/)
   assert.match(source, /function roleIdFromInput\(value, prefix\)/)
-  // 只留 id 允许的字符；带不带前缀都认，返回的一定是完整 id。
+// 只留 id 允许的字符；带不带前缀都认，返回的一定是完整 id。
   assert.match(source, /\.replace\(\/\[\^a-z0-9-\]\+\/g, '-'\)/)
   assert.match(source, /return clean\.startsWith\(tag\) \? clean : `\$\{tag\}\$\{clean\}`/)
-  // 用户 m04110：两个框的说明压到最短 ——「中文名，如：架构师」/「英文名，如：dev」。
+// 两个框的说明压到最短：「中文名，如：架构师」/「英文名，如：dev」。
   assert.match(source, /placeholder: '英文名，如：dev'/)
   assert.match(source, /placeholder: '中文名，如：架构师'/)
-  // 留空 = 老行为（宿主按名字 slug）；填了就显式传 id。
+// 留空 = 老行为（宿主按名字 slug）；填了就显式传 id。
   assert.match(source, /const draftRoleId = roleIdFromInput\(newId, newRoleIdPrefix\)/)
   assert.match(source, /\.\.\.\(draftRoleId === '' \? null : \{ id: draftRoleId \}\)/)
-  // 敲下去就能看见成员名，并且非法输入不会被发出去。
+// 敲下去就能看见成员名，非法输入不会被发出去。
   assert.match(source, /成员名：\$\{draftMemberName\}（spawn_teammate 用这个名字）/)
   assert.match(source, /角色 ID 只能用英文小写字母、数字和短横线/)
   assert.match(source, /newId\.trim\(\)\.length > 0 && draftRoleId === ''/)
 })
 
-//#region §5.57 详情面板改角色 ID（用户 m20310：「还得给我改 id 的地方啊，就放在名字下面一行」）
-// 客户端只负责把用户打的**裸名字**补成完整 id、把三种坏情况说清楚、把改动交给
-// `update-role` 的 `newId`；目录/file/preset 三样怎么一起换是宿主的事（见 §5.57 那条）。
+// ---- 详情面板改角色 ID ----
+// 客户端只负责把裸名字补成完整 id、把三种坏情况说清楚、把改动交给 update-role 的 newId；
+// 目录 / 文件 / preset 怎么一起换是宿主的事。
 
 test('§5.57 the detail panel edits the role id under the name field', async () => {
   const source = await readFile(new URL('../../lib/client.js', import.meta.url), 'utf8')
 
-  // 草稿 + 同步：选中谁就填谁（界面上只写去掉前缀的成员名）。
+// 草稿 + 同步：选中谁就填谁（界面上只写去掉前缀的成员名）。
   assert.match(source, /const \[idDraft, setIdDraft\] = React\.useState\(''\)/)
   assert.match(source, /setIdDraft\(selected\.id\.startsWith\(prefix\) \? selected\.id\.slice\(prefix\.length\) : selected\.id\)/)
-  // 三种状态：非法 / 被占用 / 改过了 —— 提示行按这个优先级落到 error 或 hint。
+// 三种状态：非法 / 被占用 / 改过了 —— 提示行按这个优先级落到 error 或 hint。
   assert.match(source, /const selectedIdDraft = roleIdFromInput\(idDraft, newRoleIdPrefix\)/)
   assert.match(source, /const idDraftInvalid = idDraft\.trim\(\)\.length > 0 && selectedIdDraft === ''/)
   assert.match(source, /const idDraftTaken =/)

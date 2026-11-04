@@ -1,6 +1,5 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // 群聊 tab：事件折叠（时钟 / 正文 / 去重合并）。
-
 
 //#region 群聊 tab（R7.5 / R7.7 / R7.8）
 /**
@@ -23,7 +22,7 @@ function formatClock(time) {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-/** Flatten one message's content blocks into display text. */
+/** 把一条消息的 content blocks 拍平成显示文本。 */
 function blockText(content) {
   if (Array.isArray(content) !== true) return '';
   const parts = [];
@@ -35,14 +34,9 @@ function blockText(content) {
   return parts.join('\n');
 }
 
-/**
- * Fold one raw Session event window into the team timeline. Pure: reads
- * nothing outside `window` and mutates none of its entries.
- *
- * `team/member` and `team/task` are whole-value records, so the latest event
- * per id wins. `team/message/queued` is the durable enqueue and
- * `team/message/delivered` carries only an id, so delivery is a second pass.
- */
+/** 把一段原始会话事件窗口折成团队时间线。纯函数：不读 window 之外的东西，也不改它的条目。
+ * team/member 与 team/task 是整值记录，按 id 取最新即赢；
+ * team/message/queued 是持久入队、delivered 只带 id，所以送达是第二遍。 */
 function foldTeamEvents(window) {
   const members = new Map();
   const tasks = new Map();
@@ -97,24 +91,9 @@ function foldTeamEvents(window) {
   };
 }
 
-/**
- * §5.50 — merge the host's projection into the locally folded window.
- *
- * The two describe the same log from two vantage points: the projection is
- * complete but up to `TEAM_LOG_POLL_MS` old, the window is live but only a
- * tail. They are merged by id rather than by "one wins", because during a
- * burst the newest events exist only in the window and the oldest only in the
- * projection.
- *
- *   - members / tasks: whole-value records — keyed by id; for a shared id the
- *     local window wins (it is the side that has seen the newest event).
- *   - messages: keyed by the durable message id; the larger `seq` wins and
- *     delivery seen by either side counts, so a message is never shown twice
- *     nor flipped back to 「排队中」 by a stale poll.
- *
- * `hasMore` becomes false: the projection folds the log from its first event,
- * so once it answers there is nothing left to page back for.
- */
+/** 把宿主侧的投影并进本地折叠的窗口。
+ * 两者描述同一份日志的两个视角：投影完整但最多旧 TEAM_LOG_POLL_MS，窗口实时但只有尾巴。
+ * 按 id 合并而不是「谁赢」，因为爆发期最新事件只存在于窗口里、最早的只存在于投影里。 */
 function mergeTeamLog(folded, projection) {
   if (projection === null || projection === undefined) return folded
 
@@ -170,12 +149,7 @@ function mergeTeamLog(folded, projection) {
   };
 }
 
-/**
- * §5.50 — poll the host projection for one Session.
- *
- * Returns `null` until (and whenever) the host cannot answer, which is the
- * signal for the caller to keep using the local window. Polling stops while
- * the tab is hidden: a background tab has no one to show the result to.
- */
+/** 轮询某个会话的宿主投影。宿主答不上就返回 null，调用方继续用本地窗口；
+ * 页签隐藏时停止轮询 —— 后台页签没人看结果。 */
 
 export { formatClock, blockText, foldTeamEvents, mergeTeamLog };

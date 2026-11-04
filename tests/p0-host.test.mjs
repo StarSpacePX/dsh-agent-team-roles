@@ -1,11 +1,5 @@
-/**
- * 施工批次 A —— P0 宿主半的回归测试（A1 路径逃逸 / A2 notes.json 坏 JSON）
- *
- * 来源：`tests/p0-host.test.mjs`（468 行，超 400 行红线）。本轮按它已有的 12 处分节横幅拆成
- * 三份：本文件（A1 + A2 + 各自的 §5.58 复核反例）/ `p0-host-store.test.mjs`（A3 RoleStore）/
- * `p0-host-command.test.mjs`（A4 /command + A5 dispose 竞态）。
- * test() 回调体逐字未改。假 Cordis 上下文见 `tests/harness.mjs`。
- */
+/** P0 宿主半回归测试（A1 路径逃逸 / A2 notes.json 坏 JSON 与复核反例）。
+ * 假 Cordis 上下文见 tests/harness.mjs。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
@@ -39,9 +33,7 @@ async function withDataDir(run) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// A1 — 路径逃逸：create-role 先落盘后校验 id
-// ---------------------------------------------------------------------------
+// ---- A1 —— 路径逃逸：create-role 先落盘后校验 id ----
 
 test('A1: roleDir 拒绝任何能逃出数据目录的 id', () => {
   const refused = [
@@ -118,9 +110,7 @@ test('A1: /command create-role 用 ../ 逃逸时回 4xx 且不写盘', async () 
   })
 })
 
-// ---------------------------------------------------------------------------
-// A2 — notes.json 坏 JSON 被当作「文件不存在」，导出静默覆盖用户手改内容
-// ---------------------------------------------------------------------------
+// ---- A2 —— notes.json 坏 JSON 被当作「文件不存在」，导出静默覆盖用户手改内容 ----
 
 test('A2: notes.json 坏 JSON 时 exportNotes 报错、原文件逐字节不变、留下 corrupt 备份', async () => {
   await withDataDir(async (dir) => {
@@ -164,12 +154,7 @@ test('A2: 已有手改内容在导出后仍然保留', async () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// §5.58 A1/A2/A3 复核反例回归
-//
-// 这三条都不是原用例漏测的「同一件事换个输入」，而是修复本身留下的洞，由
-// task-5 的对抗式只读复核发现，见 `Docs/teams优化-AtoC复核.md` §8。
-// ---------------------------------------------------------------------------
+// ---- A1/A2/A3 复核反例回归：这三条是修复本身留下的洞，不是原用例漏测换个输入 ----
 
 test('A1-followup: create-role 拒绝非字符串 id，不会建出 123 / true 目录', async () => {
   await withPlugin(async ({ routes }, dir) => {
@@ -184,8 +169,8 @@ test('A1-followup: create-role 拒绝非字符串 id，不会建出 123 / true �
         `id=${JSON.stringify(id)} 期望 4xx，实际 ${response.status}`,
       )
     }
-    // `String(123)` / `String(true)` 恰好都能过 ID_PATTERN，所以旧代码会真的
-    // 建出这两个目录 —— 测试要盯的就是磁盘，而不是只盯状态码。
+// String(123) / String(true) 恰好都能过 ID_PATTERN，旧代码会真的建出这两个目录 ——
+// 测试要盯磁盘，不是只盯状态码。
     for (const coerced of ['123', 'true', '[object Object]']) {
       assert.equal(await exists(path.join(dir, coerced)), false, `不应就地建出 ${coerced}/`)
     }
@@ -220,8 +205,8 @@ test('A1-followup: update-role 的 newId 同样拒绝非字符串', async () => 
 })
 
 test('A2-followup: notes.json 是合法 JSON 却不是对象时，同样拒绝并留备份', async () => {
-  // 这五个都是合法 JSON，但一个覆盖都表达不了；旧代码把它们规范化成 {} 后
-  // 直接合并默认值，用 6,799 字节静默盖掉用户文件，还回 replaced: true。
+// 这五个都是合法 JSON，但一个覆盖都表达不了；旧代码把它们规范化成 {} 后直接合并默认值，
+// 用 6,799 字节静默盖掉用户文件，还回 replaced: true。
   for (const text of ['null', '[]', '"hello"', '42', 'true']) {
     await withDataDir(async (dir) => {
       const file = notesPath(dir)

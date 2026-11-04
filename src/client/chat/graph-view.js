@@ -1,5 +1,5 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
-// 群聊页签中段：角色依赖图（@ 周期选择 + 一对 mapping 一行的依赖行 + 可展开的时间线）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
+// 群聊页签中段：角色依赖图（@ 周期选择 + 一对 mapping 一行 + 可展开的时间线）。
 
 import { React, h } from './../react.js';
 import { chatStyles, styles } from './../styles.js';
@@ -33,7 +33,7 @@ function TeamChatGraph({ p }) {
       ? h(
           'div',
           { style: chatStyles.controls },
-          // 用户 2026-10-13：去掉「统计周期」四个字，「到」也换成一个短横线。
+// 不显示「统计周期」四个字，「到」用一个短横线。
           h(
             'select',
             {
@@ -100,9 +100,8 @@ function TeamChatGraph({ p }) {
           'div',
           { style: chatStyles.graph },
           pairs.map((pair) => {
-            // 一对 mapping 一行。用户 2026-10-13：「lead 永远放左边，而不是看情况」——这一对
-            // 里只要有 Lead，Lead 一律在左；两个数字跟着显示顺序走（左数字 = 左→右）。
-            // 两边都不是 Lead（成员↔成员）时，沿用旧的「发起方在左」规则。
+// 一对 mapping 一行：这一对里只要有 Lead，Lead 一律在左，两个数字跟着显示顺序（左数字 = 左→右）；
+// 两边都不是 Lead（成员↔成员）时沿用「发起方在左」。
             const leftIsLead = leadIds.has(String(pair.leftId));
             const rightIsLead = leadIds.has(String(pair.rightId));
             const both = pair.out > 0 && pair.back > 0
@@ -119,8 +118,7 @@ function TeamChatGraph({ p }) {
             const title = both
               ? `${leftName} → ${rightName} ${outCount} 条；${rightName} → ${leftName} ${backCount} 条`
               : `${leftName} → ${rightName} ${pair.rows.length} 条`
-            // 用户 2026-10-13：「没有消息就是 0，对称懂吗」——两个方向永远都报数字，
-            // 单向的那一行写 `@0 ⇄ @1`，不再用 `→ @n` / `← @n` 的省略写法。
+// 两个方向永远都报数字：单向的那一行写 @0 ⇄ @1，不用 → @n / ← @n 的省略写法。
             const countText = `@${outCount} ⇄ @${backCount}`
             return h(
               'div',
@@ -130,8 +128,7 @@ function TeamChatGraph({ p }) {
                 {
                   type: 'button',
                   title,
-                  // 用户 2026-10-13：「两行不要背景灰色和悬浮背景灰」——常态与悬停都不上底色，
-                  // 只保留描边为零的行式布局。
+// 常态与悬停都不上底色，只保留描边为零的行式布局。
                   style: chatStyles.graphRow,
                   onClick: () => togglePair(pair.key),
                 },
@@ -148,7 +145,7 @@ function TeamChatGraph({ p }) {
                         'div',
                         { key: `${row.seq}:${row.message.id}`, style: chatStyles.tlRow },
                         h('span', { style: chatStyles.tlTime }, formatClock(row.time)),
-                        // 合并后一条行（时间线）里可能两个方向都有，用箭头标出这一条是谁 @ 谁。
+// 合并后的时间线里可能两个方向都有，用箭头标出这一条是谁 @ 谁。
                         both
                           ? h(
                               'span',
@@ -159,9 +156,7 @@ function TeamChatGraph({ p }) {
                               String(row.message.senderId) === leftId ? '→' : '←',
                             )
                           : null,
-                        // 用户 2026-10-13（m02211）：「点开之后显示完整标题，把这一行占满，不用截取这么短」——
-                        // 不再按 60 字硬切，改成整条消息的**第一行**，由 CSS 在行尾省略；
-                        // `title` 挂全文，悬停仍能看完整内容。
+// 不按字数硬切，取整条消息的第一行，由 CSS 在行尾省略；title 挂全文，悬停仍能看完整内容。
                         h(
                           'span',
                           { style: chatStyles.tlText, title: blockText(row.message.content) },

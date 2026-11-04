@@ -1,9 +1,5 @@
-/**
- * 运行时上下文（§5.43 名册 / §5.44 任务唤醒 / §5.45 @ 派发）
- *
- * 批次 F4：从 tests/plugin.test.mjs 拆分而来。test() 回调体逐字未改，只有两类机械调整：
- * import 来源换成本目录的相对路径；测试体里 `new URL('../lib/…')` 加深一层为 `'../../lib/…'`。
- */
+/** 运行时上下文（名册 / 任务唤醒 / @ 派发）。
+ * 从 tests/plugin.test.mjs 拆分而来（超 400 行红线），测试体只做了 import 路径加深一层。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -13,7 +9,6 @@ import { LEAD_DISPATCH_LINES, TEAMMATE_REPLY_LINES, TEAMMATE_STYLE_LINE } from '
 import { NOTICE_MAX_PER_SESSION, NOTICE_SOURCE, idleMembers } from '../../lib/team-watch.js'
 import { call, withPlugin } from '../support/harness.mjs'
 import { fakeAgent, rosterUp, taskRow, COMMAND_URL } from '../support/plugin-fixtures.mjs'
-
 
 //#region §5.44 — 事件驱动派发：任务板变化会唤醒 Lead（用户 m10481 的第三条）
 

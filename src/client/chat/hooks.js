@@ -1,4 +1,4 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // 群聊 tab：投影与事件窗口 hook。
 
 import { TEAM_LOG_POLL_MS, TEAM_LOG_URL } from './../constants.js';
@@ -20,8 +20,7 @@ function useTeamProjection(sessionId) {
         );
         if (response.ok) {
           const payload = await response.json();
-          // A payload without `messages` is not the projection: ignore it
-          // rather than merge half a shape into the view.
+// 没有 messages 的载荷不是投影：忽略，而不是把半个形状并进视图。
           if (payload !== null && typeof payload === 'object' && Array.isArray(payload.messages)) next = payload;
         }
       } catch (error) {
@@ -48,21 +47,15 @@ function useTeamProjection(sessionId) {
   return projection;
 }
 
-/** One-line preview of a message body for the dependency timeline. */
+/** 依赖时间线用的消息正文单行预览。 */
 function shortText(content, max) {
   const flat = blockText(content).replace(/\s+/gu, ' ').trim();
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
 }
 
-/**
- * Fold a message list into **one row per participant pair**, in the order
- * each pair first appears. One mapping reads as one row (user m15312), so a
- * pair owns both directions: `left ⇄ right`, labelled with
- * each direction's @ count, and its timeline merges the rows of both
- * directions in seq order. A second developer therefore adds one row, not
- * two. Single-direction pairs keep the `A → B @n` shape.
- */
-//--- foldPairs:start ---
+/** 把消息列表折成每个「参与者对」一行，按每对第一次出现的顺序。
+ * 一对拥有两个方向（left ⇄ right），用各自的 @ 次数标注，时间线按 seq 合并两个方向的行。
+ * 所以再招一个开发者只多一行，不是两行；单向的对只有一行。 */
 function foldPairs(messages, nameById) {
   const pairs = new Map();
   for (const row of messages) {
@@ -92,7 +85,7 @@ function foldPairs(messages, nameById) {
 }
 //--- foldPairs:end ---
 
-/** Subscribe to one observable event-window source. */
+/** 订阅一个可观察的事件窗口源。 */
 function useEventWindow(subscribe, getWindow) {
   const [window, setWindow] = React.useState(() => getWindow());
   React.useEffect(() => {
@@ -101,6 +94,5 @@ function useEventWindow(subscribe, getWindow) {
   }, [subscribe, getWindow]);
   return window;
 }
-
 
 export { useTeamProjection, shortText, foldPairs, useEventWindow };

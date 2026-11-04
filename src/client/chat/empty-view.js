@@ -1,12 +1,11 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
-// 群聊页签的空态：这个窗口里没有群聊记录（可能只是「没往前翻到」）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
+// 群聊页签的空态：这个窗口里没有群聊记录（可能只是没往前翻到）。
 
 import { h } from './../react.js';
 import { chatStyles, styles } from './../styles.js';
 
-// §5.48 — an empty tab over a *truncated* window must not claim the session
-// never had a team: say where the records are and offer to walk back to them.
-// 入参：`truncated`（窗口被截断）、`scan`（往前翻的记账）、`runScan`（再翻 N 段）。
+// 窗口被截断时的空页签不能声称这个会话从没有过团队：要说清记录在哪，并提供往前翻。
+// 入参：truncated（窗口被截断）、scan（往前翻的记账）、runScan（再翻 N 段）。
 function TeamChatEmpty({ p }) {
   const { truncated, scan, runScan } = p;
   return h(

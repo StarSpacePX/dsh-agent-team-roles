@@ -1,4 +1,4 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // 群聊页签下半段：消息流（收发胶囊 + 送达状态 + 时间 + markdown 正文）。
 
 import { React, h } from './../react.js';
@@ -25,14 +25,12 @@ function TeamChatMessages({ p }) {
       { style: chatStyles.list },
       ordered.map((row) => {
         const message = row.message;
-        // §5.59/m00727 — 这一条的主色 = 发送者的角色色：**整圈边框**都用它
-        // （用户 2026-10-13 澄清：「我说的是消息边框同色，不是卡片都改颜色」），
-        // 卡片底色与文字保持原样；收件人 chip 用收件人自己的角色色，两边不做层级区分（用户 m00378）。
+// 这一条的主色 = 发送者的角色色，整圈边框都用它；卡片底色与文字保持原样。
+// 收件人 chip 用收件人自己的角色色，两边不做层级区分。
         const senderColor = colorOfRow(message.senderId, message.senderName);
         const targetName = nameById.get(String(message.targetId));
         const targetColor = targetName === undefined ? null : colorOfRow(message.targetId, targetName);
-        // 2026-10-13 减框改版（方案 A）：整圈边框仍是发送者色，但平时只到 40% 淡色，
-        // 鼠标停留在这一条上才转成实色。
+// 整圈边框仍是发送者色，但平时只到 40% 淡色，鼠标停留在这一条上才转实色。
         const rowKey = `${row.seq}:${message.id}`;
         return h(
           'div',
@@ -49,13 +47,13 @@ function TeamChatMessages({ p }) {
             'div',
             { style: chatStyles.meta },
             h('span', { style: chipStyle(senderColor) }, message.senderName),
-            // 用户 2026-10-13：「为啥箭头在里面？放中间啊」——箭头自己一格，夹在收发两个胶囊中间。
+// 箭头自己一格，夹在收发两个胶囊中间。
             targetName === undefined ? null : h('span', { style: chatStyles.arrow }, '→'),
             targetName === undefined ? null : h('span', { style: chipStyle(targetColor) }, targetName),
             h(
               'span',
               { style: chatStyles.metaRight },
-              // 用户 2026-10-13：时间固定淡紫，不再跟状态色走；送达状态保持原样。
+// 时间固定淡紫，不跟状态色走；送达状态保持原样。
               h('span', { style: chatStyles.time }, formatClock(row.time)),
               h(
                 'span',
@@ -64,7 +62,7 @@ function TeamChatMessages({ p }) {
               ),
             ),
           ),
-          // §5.64 — 正文交给宿主自己的 markdown 渲染器（官方聊天正文同款），拿不到就退回原来的纯文本。
+// 正文交给宿主自己的 markdown 渲染器（官方聊天正文同款），拿不到就退回纯文本。
           Markdown === null
             ? h('pre', { style: chatStyles.body }, blockText(message.content))
             : h(

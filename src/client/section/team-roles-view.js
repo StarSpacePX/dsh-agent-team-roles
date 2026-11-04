@@ -1,5 +1,5 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
-// 容器视图（原 2412-2577 + 2842）：工具条 / 开关 / 新建行；列区交给 columns。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
+// 容器视图：工具条 / 开关 / 新建行；列区交给 columns。
 
 import { TeamRolesColumns } from './team-roles-columns.js';
 import { describe, info, note } from './../notes.js';
@@ -10,13 +10,12 @@ function TeamRolesView(vm) {
   const { busy, draftMemberName, draftRoleId, error, newId, newName, run, setNewId, setNewName, setSelectedId, setTeamResult, state, teamResult } = vm;
   return h(
     'div',
-    // 页签页的宽度/居中在这里收口（设置面板当年给的宽度没了，见 styles.js 的 page）。
+// 页签页的宽度与居中在这里收口（设置面板当年给的宽度已经没了，见 styles.js 的 page）。
     { style: styles.page },
     h(
       'div',
       { style: styles.row },
-      // 「刷新键就是重新加载配置」(m07345) —— one key, and it re-reads the role
-      // files from disk (`reload`), which also re-syncs the presets.
+// 「刷新」就是重新从磁盘读角色文件（reload），顺带重同步预设。
       h(
         'button',
         {
@@ -30,8 +29,7 @@ function TeamRolesView(vm) {
         },
         '刷新',
       ),
-      // §5.34 — the explanations are data, so there has to be a
-      // way to get a file that lists every key. One click, then edit it.
+// 说明表是数据，得有一条路把每个键写成文件给人看：一键写出，自己再改。
       h(
         'button',
         {
@@ -65,9 +63,8 @@ function TeamRolesView(vm) {
       h('input', {
         type: 'checkbox',
         checked: state.team !== undefined && state.team.enabled === true,
-        // 三种「不能点」要分开：正忙、宿主半没重启（字段还没有）、这个部署
-        // 没有可问的人（没有 pluginManager）。把最后一种显示成普通的「关」
-        // 会让人以为点一下就能开。
+// 三种「不能点」要分开：正忙、宿主侧没重启（字段还不存在）、这个部署没有可问的人
+// （没有 pluginManager）。把最后一种画成普通的「关」会让人以为点一下就能开。
         disabled: busy || state.team === undefined || state.team.available !== true,
         onChange: async (event) => {
           const payload = await run({ action: 'set-team', enabled: event.target.checked });
@@ -90,7 +87,7 @@ function TeamRolesView(vm) {
             : '',
         ),
         {
-          // `{version}` 是 DEFAULT_NOTES 里的占位；带上这一句才不会留下字面量。
+// {version} 是 DEFAULT_NOTES 里的占位，带上这一句才不会留下字面量。
           version: state.team !== undefined && state.team.version ? `，组合包 ${state.team.version}` : '',
           reason: state.team === undefined ? '' : state.team.reason || '',
         },
@@ -122,9 +119,7 @@ function TeamRolesView(vm) {
           : '关掉后群聊 tab 不再出现，配置与视图都还在；改完立即生效，不用刷新。',
       ),
     ),
-    // 「做成三行」（用户 m11737）：新建区原来是一行三个控件（中文名 / 英文名 / 新建角色），
-    // 拉宽窗口后每行都该撑满上限宽度，所以拆成三行——两个输入框各占一整行，
-    // 按钮单独一行（跟「保存 / 全部还原 / 删除角色」那行一样，按钮不拉满）。
+// 新建区三行：两个输入框各占一整行，按钮单独一行（按钮不拉满，与「保存 / 全部还原 / 删除角色」那行一致）。
     h(
       'div',
       { style: styles.field },
@@ -135,8 +130,7 @@ function TeamRolesView(vm) {
         onChange: (event) => setNewName(event.target.value),
       }),
     ),
-    // 「再给一行设置 id」(user m20207)：成员名 = 角色 id 去掉 `team-`，
-    // 留空才回落到按名字自动生成（中文名会变成 `team-rfozlm` 这种哈希）。
+// 成员名 = 角色 id 去掉 team- 前缀；留空才回落到按名字自动生成（中文名会变成 team-rfozlm 这种哈希）。
     h(
       'div',
       { style: styles.field },
@@ -155,8 +149,7 @@ function TeamRolesView(vm) {
         {
           style: styles.button,
           disabled: busy || newName.trim().length === 0 || (newId.trim().length > 0 && draftRoleId === ''),
-          // §5.29 — 「新建」是一个属于它自己的目录。
-          // 这句说明收进按钮的悬浮提示里（m07947 1.）。
+// 每个角色有自己的目录，这句说明收进按钮的悬浮提示里。
           title: describe(
             'createRole',
             '新建一个角色 = 建一个属于它的目录：role.json（这个角色的全部开关）+ AGENTS.md（从主会话复制一份，之后只用这份）。新角色的模式默认是标准模式。角色 ID 同时决定成员名（去掉 team- 前缀），留空则按名字自动生成。',

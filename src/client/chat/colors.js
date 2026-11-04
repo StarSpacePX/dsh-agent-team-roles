@@ -1,13 +1,13 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
-// 群聊 tab：角色颜色（§5.59）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
+// 群聊 tab：角色颜色。
 
 import { STATE_URL } from './../constants.js';
 import { React } from './../react.js';
 import { chat } from './../tokens.js';
 
-// 颜色和调色板的权威来源是宿主半（`lib/roleColor.js`），`/state` 里随角色一起下来
-// （`roles[].color` / `rolePalette` / `leadColor`）。下面这份只是拿到回包之前的兜底，
-// 以及角色表里没有的成员（比如手工起的名字）用的散列调色板，顺序与宿主半一致。
+// 颜色与调色板的权威在宿主侧（lib/roleColor.js），随 /state 与角色一起下来
+// （roles[].color / rolePalette / leadColor）。下面这份只是回包之前的兜底，
+// 以及角色表里没有的成员（手工起的名字）用的散列调色板，顺序与宿主侧一致。
 const FALLBACK_LEAD = chat.purple;
 const FALLBACK_PALETTE = chat.palette;
 
@@ -19,12 +19,9 @@ function hashedColor(name, palette) {
   return palette[hash % palette.length];
 }
 
-/**
- * 把 `/state` 折成「谁 → 什么颜色」两张表：按 id 和按成员名。
- *
- * 成员名取自宿主的 `roles[].memberName`；老回包没有这个字段时退回「role id 去掉
- * `presetPrefix`」，和 `memberNameForRole` 的规则一致。
- */
+/** 把 /state 折成「谁 → 什么颜色」两张表：按 id、按成员名。
+ * 成员名取自 roles[].memberName；老回包没有这个字段时退回「role id 去掉 presetPrefix」，
+ * 与 memberNameForRole 同一条规则。 */
 function buildColors(payload) {
   const state = payload !== null && typeof payload === 'object' ? payload : {};
   const roles = Array.isArray(state.roles) ? state.roles : [];
@@ -35,9 +32,8 @@ function buildColors(payload) {
 
   const byId = new Map();
   const byName = new Map();
-  // 宿主半的回包还没带上 `roles[].color` 时（换了客户端、还没重启 dsh）按**列表顺序**取，
-  // 与宿主半 `nextRoleColor`（第一个没被占用的颜色）在常见情形下逐一对上，
-  // 所以「刷新页面」和「重启后」看到的是同一套颜色。
+// 回包还没带 roles[].color 时（换了客户端、还没重启 dsh）按列表顺序取，
+// 与宿主侧 nextRoleColor（第一个没被占用的颜色）在常见情形下逐一对应。
   for (const [index, role] of roles.entries()) {
     if (role === null || typeof role !== 'object') continue;
     const id = String(role.id ?? '');
@@ -58,7 +54,7 @@ function buildColors(payload) {
   return {
     lead,
     palette,
-    /** 角色表里认得的颜色；认不出来时按名字散列，绝不返回空。 */
+/** 角色表里认得的颜色；认不出来就按名字散列，绝不返回空。 */
     colorFor(id, name) {
       const byIdentifier = byId.get(String(id ?? ''));
       if (byIdentifier !== undefined) return byIdentifier;
@@ -69,7 +65,7 @@ function buildColors(payload) {
   };
 }
 
-/** 读一次 `/state` 拿角色颜色；读不到就全按散列兜底，消息流照常渲染。 */
+/** 读一次 /state 拿角色颜色；读不到就全按散列兜底，消息流照常渲染。 */
 function useRoleColors() {
   const [colors, setColors] = React.useState(() => buildColors(null));
   React.useEffect(() => {
@@ -81,7 +77,7 @@ function useRoleColors() {
         const payload = await response.json();
         if (alive === true) setColors(buildColors(payload));
       } catch (error) {
-        // 颜色拿不到不是错误：hash 兜底已经给了每个名字一个稳定颜色。
+// 拿不到颜色不是错误：散列兜底已经给了每个名字一个稳定颜色。
       }
     };
     void load();

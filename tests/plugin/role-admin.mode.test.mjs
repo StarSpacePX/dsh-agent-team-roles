@@ -1,16 +1,11 @@
-/**
- * 角色目录与增删改（create / rename / reset / delete / mode）
- *
- * 批次 F4：从 tests/plugin.test.mjs 拆分而来。test() 回调体逐字未改，只有两类机械调整：
- * import 来源换成本目录的相对路径；测试体里 `new URL('../lib/…')` 加深一层为 `'../../lib/…'`。
- */
+/** 角色目录与增删改（create / rename / reset / delete / mode）。
+ * 从 tests/plugin.test.mjs 拆分而来（超 400 行红线），测试体只做了 import 路径加深一层。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { call, withPlugin } from '../support/harness.mjs'
 import path from 'node:path'
 import { REVIEWER, withHome, definitionOf, STATE_URL, COMMAND_URL } from '../support/plugin-fixtures.mjs'
-
 
 //#region §5.32 模式（m07307 / m07345：「角色详情里加一个四选一」）
 
@@ -25,15 +20,13 @@ test('a role composes the mode it is set to, and the reset key returns it to sta
         const id = created.json.id
         const role = created.json.state.roles.find((item) => item.id === id)
 
-        // A new role starts on 标准模式 — 「默认使用标准模式」 (m07307).
+// 新角色从标准模式起步。
         assert.equal(role.mode, 'standard')
         assert.equal(role.modeLabel, '标准模式')
         assert.equal(role.agentsMd.hasRow, true)
 
-        // The four choices come from `/state`, so the client never hardcodes the
-        // deployment's presets — its own list would drift on an upgrade.
-        // 用户 m07126/m07129：角色自己那份复制品预设也要列出来（`source: 'role'`），
-        // 并且是面板默认选中的那个（`role.presetId` = 它自己的 id）。
+// 四个候选项来自 /state，客户端从不硬编码部署的预设 —— 自己的列表会在升级时漂移。
+// 角色自己那份复制品预设也要列出来（source: 'role'），并且是面板默认选中的那个（role.presetId）。
         assert.deepEqual(
           created.json.state.modes.map((mode) => [mode.id, mode.label, mode.available, mode.source]),
           [
@@ -48,9 +41,7 @@ test('a role composes the mode it is set to, and the reset key returns it to sta
         const standardRows = role.rows.length
         assert.equal(definitionOf(registered, id).plugins.length, 19)
 
-        // 标准模式 → PTC 模式: the whole row table is recomposed, and the row the
-        // deployment only ships in `ptc` appears — in the UI *and* in the preset
-        // the registry would mount.
+// 标准模式 → PTC 模式：整张行表重组，部署只在 ptc 里发的行出现 —— UI 与注册表要挂的预设里都有。
         const toPtc = await call(routes, COMMAND_URL, 'POST', { action: 'set-mode', id, mode: 'ptc' })
         assert.equal(toPtc.status, 200)
         const ptc = toPtc.json.state.roles.find((item) => item.id === id)
@@ -60,15 +51,12 @@ test('a role composes the mode it is set to, and the reset key returns it to sta
         assert.equal(role.rows.some((row) => row.id === 'tool-presentation'), false)
         assert.equal(definitionOf(registered, id).plugins.some((row) => row.id === 'tool-presentation'), true)
 
-        // ... and 极简模式, where it only ships `persona` + a terminal group. The
-        // honest caveats are reported rather than papered over: no
-        // `agent-instructions` row (so this role's own AGENTS.md is not read) and
-        // no delegation row (so R8's switch has nothing to move).
+// ……以及极简模式（只发 persona + 一个 terminal 组）。缺项如实报告而不是粉饰：
+// 没有 agent-instructions 行（角色自己的 AGENTS.md 不会被读），也没有 delegation 行（继承开关无处可动）。
         const toMinimal = await call(routes, COMMAND_URL, 'POST', { action: 'set-mode', id, mode: 'minimal' })
         assert.equal(toMinimal.status, 200)
         const minimal = toMinimal.json.state.roles.find((item) => item.id === id)
-        // The panel's row table is flat: the group itself, then its children, each
-        // carrying the `parent` path. `minimal` is `persona` + one terminal group.
+// 面板的行表是平的：分组本身、然后它的子行，各带 parent 路径。minimal 是 persona + 一个 terminal 组。
         assert.deepEqual(
           minimal.rows.filter((row) => row.parent === null).map((row) => row.id),
           ['persona', 'persistent-shell'],
@@ -84,14 +72,12 @@ test('a role composes the mode it is set to, and the reset key returns it to sta
           false,
         )
 
-        // An unknown mode is refused instead of quietly reshaping the role into
-        // 标准模式 — the coercion in `normalizeRole` is for files, not for clicks.
+// 不认识的模式直接拒，不悄悄把角色改成标准模式 —— normalizeRole 的纠正是给文件的，不是给点击的。
         const bad = await call(routes, COMMAND_URL, 'POST', { action: 'set-mode', id, mode: 'spawn' })
         assert.equal(bad.status, 400)
         assert.match(bad.json.error, /未知的模式/)
 
-        // Layer 2 of §5.29's restore keys: the mode goes back to the default too,
-        // which is what the button's title promises.
+// 还原键的第二层：模式也回到默认，这才是按钮标题承诺的。
         const reset = await call(routes, COMMAND_URL, 'POST', { action: 'reset-role', id })
         assert.equal(reset.status, 200)
         const after = reset.json.state.roles.find((item) => item.id === id)
@@ -105,8 +91,7 @@ test('a role composes the mode it is set to, and the reset key returns it to sta
 })
 
 test('a role file with no mode still loads, as standard', async () => {
-  // Exactly the document a pre-§5.32 profile has on disk: no `mode` anywhere.
-  // It must keep working, and it must land on the default the user named.
+// 就是还没有四种模式时磁盘上的文档：哪儿都没有 mode。它必须能继续用，并落到用户点名的默认。
   await withPlugin(
     async ({ registered, routes }) => {
       const state = await call(routes, STATE_URL)
@@ -114,8 +99,7 @@ test('a role file with no mode still loads, as standard', async () => {
       assert.equal(role.mode, 'standard')
       assert.equal(role.modeLabel, '标准模式')
       assert.equal(role.modeAvailable, true)
-      // The rows are the standard snapshot's — an old file is not left with an
-      // empty table, and the preset the registry holds is complete.
+// 行来自标准快照 —— 老文件不会被留成空表，注册表持有的预设是完整的。
       assert.ok(role.rows.length > 0)
       assert.equal(definitionOf(registered, 'team-reviewer').plugins.length, 19)
     },
@@ -126,11 +110,7 @@ test('a role file with no mode still loads, as standard', async () => {
   )
 })
 
-// §5.33 — 「启用智能体团队」. The switch belongs to the deployment, so the tests
-// stand in for it: a fake `pluginManager` that remembers the profile's selection.
+// 「启用智能体团队」：开关属于部署，所以测试用一个假的 pluginManager 站位，它记得 profile 的选择。
 
-/**
- * The smallest thing that behaves like the profile's bundle manager.
- *
- * @param {{ installed?: boolean, enabled?: boolean, removable?: boolean, readOnlyReason?: string, application?: string, error?: object, warnings?: string[] }} [row]
- */
+/** 最像 profile bundle manager 的最小实现。
+ * @param {{ installed?: boolean, enabled?: boolean, removable?: boolean, readOnlyReason?: string, application?: string, error?: object, warnings?: string[] }} [row] */

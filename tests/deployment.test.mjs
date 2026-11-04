@@ -1,16 +1,5 @@
-/**
- * Unit tests for the deployment readers behind the MCP switch.
- *
- * These cover the parts that never touch Cordis: how the connector's storage
- * document is read, how a deny list becomes a gateway row, and what
- * `normalizeCapabilities` keeps. The plugin-level wiring (the `set-mcp` action
- * and the resulting preset) is exercised in `tests/plugin/panels.test.mjs`.
- *
- * There are deliberately **no** loop-row tests here any more (§5.30): this module
- * no longer builds one, because `agent-loop` owns the process-wide agent-factory
- * slot and a preset carrying it fails to mount. The one test that remains about
- * loop is `parseDeployment`, which still has to read a snapshot that mentions it.
- */
+/** 部署读取器的单元测试（MCP 开关背后那几层）：连接器存储文档怎么读、deny 名单怎么变成
+ * gateway 行、normalizeCapabilities 保留什么。插件级接线（set-mcp 与生成的预设）在 panels.test.mjs。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
@@ -57,8 +46,7 @@ const STORAGE = {
         enabled: false,
         command: 'npx',
       },
-      // A record without a server name cannot become a switch: there is no
-      // namespace to filter, so it is dropped instead of rendered as a blank row.
+// 没有 server 名的记录成不了开关：没有命名空间可过滤，直接丢掉，不渲染成空行。
       broken: { key: 'broken', transport: 'stdio', enabled: true },
     },
   },
@@ -79,8 +67,7 @@ test('parseMcpServers keeps the fields a switch needs, in server-name order', ()
     enabled: true,
     target: 'C:\\python.exe',
   })
-  // The connector's own enabled flag is carried through untouched — the panel
-  // shows it, the plugin never writes it.
+// 连接器自己的 enabled 标志原样透传：面板显示它，插件从不写它。
   assert.equal(servers[1].enabled, false)
 })
 
@@ -131,16 +118,15 @@ test('mcpToolNames matches the public prefix and nothing else', () => {
 })
 
 test('mcpToolNames never lets a shorter server name swallow a longer one', () => {
-  // `git` is a strict prefix of `github`, but the double underscore is part of the
-  // prefix, so the two namespaces cannot bleed into each other. This is the whole
-  // reason the filter uses `mcp__<name>__` and not `mcp__<name>`.
+// git 是 github 的严格前缀，但双下划线属于前缀本身，两个命名空间不会串。
+// 这正是过滤用 mcp__<name>__ 而不是 mcp__<name> 的原因。
   const names = ['mcp__git__status', 'mcp__github__list_issues', 'mcp__git__', 'mcp__git__status_extra']
   assert.deepEqual(mcpToolNames(names, 'git'), ['mcp__git__status', 'mcp__git__', 'mcp__git__status_extra'])
   assert.deepEqual(mcpToolNames(names, 'github'), ['mcp__github__list_issues'])
 })
 
 test('mcpToolNames ignores non-string entries instead of throwing', () => {
-  // `tools.schemas()` is live data: a malformed listing must not take the mount down.
+// tools.schemas() 是实时数据：列错也不能把挂载搞挂。
   const names = ['mcp__github__list_issues', null, undefined, 42, { name: 'mcp__github__nope' }]
   assert.deepEqual(mcpToolNames(names, 'github'), ['mcp__github__list_issues'])
 })
@@ -166,15 +152,13 @@ test('buildMcpGateRow is null when nothing is denied, and deduplicates otherwise
 
 test('the MCP gateway row is the only row a role may add', () => {
   assert.equal(INSTRUCTION_ROW_ID, 'agent-instructions')
-  // `buildLoopRow` is gone on purpose (§5.30). A role's instruction file is not
-  // a row either — `roles.js` wires it by overriding this existing row's
-  // `config.dshHome`, which is what keeps the composition inside R3.
+// buildLoopRow 是故意去掉的；角色的规则文件也不是一行 —— roles.js 靠覆盖既有行的
+// config.dshHome 把它接上，这样组合仍在 R3 内。
   assert.equal(typeof buildMcpGateRow, 'function')
 })
 
 test('normalizeCapabilities keeps the two deny lists and nothing else', () => {
-  // A role file written by an older version still carries a `loop` block; the
-  // normalizer retires it instead of round-tripping it forever.
+// 老版本写的角色文件还带 loop 块：归一化直接退役它，不无限往返。
   assert.deepEqual(normalizeCapabilities(null), { mcp: { deny: [] }, toolGate: { deny: [] } })
   assert.deepEqual(normalizeCapabilities(['nope']), { mcp: { deny: [] }, toolGate: { deny: [] } })
 
@@ -192,8 +176,7 @@ test('buildToolGateRow is null when nothing is denied, and drops run_code', () =
   assert.equal(buildToolGateRow([]), null)
   assert.equal(buildToolGateRow(undefined), null)
   assert.equal(buildToolGateRow(['  ']), null)
-  // `run_code` is the one name the registry refuses to restrict, so a row that
-  // carries nothing else must not exist at all.
+// run_code 是注册表唯一拒绝限制的名字，所以只承载它的行必须整行不存在。
   assert.equal(buildToolGateRow([RUN_CODE_NAME]), null)
 
   assert.deepEqual(buildToolGateRow(['list_agents', 'run_code', 'list_agents']), {

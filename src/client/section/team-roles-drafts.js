@@ -1,5 +1,5 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
-// 容器第 2 段（原 1960-2119）：字段草稿、dirty 基线、displayRole。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
+// 容器第 2 段：字段草稿、dirty 基线、displayRole。
 
 import { nakedMemberName } from './../constants.js';
 import { chatTab } from './../entries.js';
@@ -12,16 +12,11 @@ function useTeamRolesDrafts(core) {
     markDirty(field);
   };
 
-  /**
-   * §B1 — **只有「角色 ID」那个框不能改 `onChange`**：`tests/plugin/ui-and-log.test.mjs:841`
-   * 有一条源码形状断言，要求那一行必须是
-   * `onChange: (event) => setIdDraft(event.target.value)`，而那个文件不在本任务的
-   * 写入范围内。所以这一笔改成"跟同步时记下的基线比"：`idDraft` 一旦偏离
-   * `idBaseline$`，就说明是用户敲进去的。
-   *
-   * 依赖只放 `[idDraft]`：切换角色时先由上面的同步 effect 写好基线、下一帧
-   * `idDraft` 才跟着变，那一帧靠 `idSyncPending$` 放行，不会误判成 dirty。
-   */
+/** 角色 ID 框不能改 onChange 的写法：必须保持
+ * `onChange: (event) => setIdDraft(event.target.value)`（有源码形状断言在盯着）。
+ * 脏判定改成「与同步时记下的基线比」：idDraft 一旦偏离 idBaseline$，就说明是用户敲的。
+ * 依赖只放 [idDraft]：切角色时上一帧先写好基线，下一帧 idDraft 才变，
+ * 那一帧靠 idSyncPending$ 放行，不会误判成 dirty。 */
   React.useEffect(() => {
     if (idSyncPending$.current) {
       idSyncPending$.current = false;
@@ -36,18 +31,15 @@ function useTeamRolesDrafts(core) {
     markDirty('id');
   }, [idDraft]);
 
-  // R6 — keep the conversation tab in step with the switch, live: hiding or
-  // showing it goes through the slot disposer, so no reload is needed.
+// R6 — 会话页签跟随开关实时变化：隐藏 / 显示走 slot 的 disposer，不用重载。
   const hideChatTab = state === null ? undefined : state.hideChatTab;
   React.useEffect(() => {
     if (hideChatTab === undefined) return;
     chatTab.setHidden(hideChatTab === true);
   }, [hideChatTab]);
 
-  // §5.35 — the optimistic overlay for the switches that carry one.
-  //
-  // `writeDraft` merges a patch; a value of `undefined` **drops** the
-  // overlay key again (the reply landed, so `/state` is the truth now).
+/** 带乐观覆盖的开关，覆盖写在这份 overlay 里。
+ * writeDraft 合并补丁；值为 undefined 表示**丢掉**这个键（回包已到，/state 才是真相）。 */
   const markPending = React.useCallback((key, on) => {
     setPending((current) => {
       const next = new Set(current);
@@ -57,15 +49,9 @@ function useTeamRolesDrafts(core) {
     });
   }, []);
 
-  /**
-   * @param {string} roleId
-   * @param {object} patch
-   * @param {{ keepOtherRole?: boolean }} [options] `keepOtherRole` is for the
-   *   **reply** path: a `set-switches` answer that arrives after the user
-   *   moved to another role must not resurrect (or wipe) that role's overlay.
-   *   A user gesture still takes the draft over, because it is about the role
-   *   they are looking at right now.
-   */
+/** 写入某个角色的乐观覆盖。
+ * keepOtherRole 给回包路径用：用户已经切走，迟到的 set-switches 回包不能复活或抹掉别的角色的覆盖；
+ * 用户手势照旧接管草稿，因为他看的就是眼前这个角色。 */
   const writeDraft = React.useCallback((roleId, patch, options) => {
     const keepOtherRole = options !== undefined && options.keepOtherRole === true;
     setDraft((current) => {
@@ -87,8 +73,7 @@ function useTeamRolesDrafts(core) {
     });
   }, []);
 
-  // What the panels actually render: the selected role with this session's
-  // not-yet-confirmed flips on top. Everything else comes from `/state`.
+// 面板实际渲染的：选中角色 + 本会话还没确认的翻转叠在上面，其余都来自 /state。
   const displayRole = React.useMemo(() => {
     if (selected === null || draft === null || draft.roleId !== selected.id) return selected;
     const rows = selected.rows.map((row) => {
@@ -122,8 +107,8 @@ function useTeamRolesDrafts(core) {
       }
       capabilities.mcp = { ...mcp, deny: [...deny] };
     }
-    // §5.55 — 插件可见性名单的同款乐观覆盖：勾掉一个工具就立刻按目标名单画，
-    // 不用等宿主半回包（回包后 overlay 被 drop，`/state` 才是真相）。
+// 插件可见性的同款乐观覆盖：勾掉一个工具就按目标名单画，
+// 不等宿主侧回包（回包后 overlay 被 drop，/state 才是真相）。
     const toolsDraft = draft.tools || {};
     if (Object.keys(toolsDraft).length > 0) {
       const toolGate = capabilities.toolGate || {};
@@ -134,9 +119,8 @@ function useTeamRolesDrafts(core) {
       }
       capabilities.toolGate = { ...toolGate, deny: [...deny] };
     }
-    // §5.49 — 技能名单的乐观覆盖：点下去就按目标名单画（user m13923：单选一个
-    // 技能时整列变灰、还慢）。`dirs` 用 `/state` 里那份可用技能表反查，所以提示
-    // 行「现在挂着 N 个技能目录」也立刻跟着变，不用等宿主半回包。
+// 技能名单的乐观覆盖：点下去就按目标名单画。
+// dirs 用 /state 里那份可用技能表反查，提示行「现在挂着 N 个技能目录」也立刻跟着变。
     const skillsDraft = draft.skills || {};
     if (Object.keys(skillsDraft).length > 0) {
       const skills = { ...(selected.skills || {}) };
@@ -155,18 +139,10 @@ function useTeamRolesDrafts(core) {
     return { ...selected, rows, capabilities };
   }, [selected, draft, state]);
 
-  /**
-   * §5.39 — the queue, and the one request it turns into.
-   *
-   * Take everything that piled up, send it as one declarative
-   * `set-switches` (host half: one write, one preset rebuild), then drop the
-   * optimistic overlay for exactly the keys this request carried — a newer
-   * gesture may already be queued by the time the reply lands.
-   *
-   * Failure is the interesting half: the draft is withdrawn and `/state` is
-   * re-read, so the panel rolls back to what the file actually says instead
-   * of keeping a flip that never landed.
-   */
+/** 队列，以及它最终变成的那一条请求：
+ * 把堆起来的变更合成一条声明式 set-switches（宿主侧一次写盘、一次重建预设），
+ * 回包后只 drop 本次携带的键 —— 回包到达时用户可能已经又点了新的。
+ * 失败时草稿要被退回，否则界面会停在没写进磁盘的状态上。 */
   return {
     displayRole,
     editDraft,

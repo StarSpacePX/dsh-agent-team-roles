@@ -1,4 +1,4 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // 工作目录面板。
 
 import { describe, info, note, section } from './../notes.js';
@@ -23,8 +23,7 @@ function WorkdirPanel({ role, workdir, busy, onReset }) {
     standard && standard.config && standard.config.maxParallelToolCalls != null
       ? standard.config.maxParallelToolCalls
       : null;
-  // §5.34 — one of three keys, so each of the three states is editable in
-  // notes.json like every other explanation.
+// 三处文案之一，三种状态都能在 notes.json 里改。
   const linkedKey =
     role.agentsMd && role.agentsMd.linked === true
       ? role.agentsMd.hasRow === false
@@ -87,22 +86,8 @@ function WorkdirPanel({ role, workdir, busy, onReset }) {
   );
 }
 
-/**
- * §5.32 / §5.40 — which mode this role is built from.
- *
- * The *set* is the deployment's business (m09580 「改成多选框，从现有的模式中加载
- * … 不要写死」; 默认是标准模式，见 m07307). The list comes
- * from `state.modes`, which the host half fills from `agentPresets.list()`
- * — so a preset the user creates or deletes changes these candidates with
- * no plugin change, and the four modes dsh ships are just the ones that
- * happen to be there out of the box.
- *
- * It is a `<select>` even though the user said 「多选框」: a role has exactly
- * one mode, and a row of checkboxes would let the UI say something the data
- * cannot. A single-choice list is what that control means here.
- *
- * A mode with no usable composition is listed but disabled, with the reason
- * in its tooltip, instead of silently behaving like 标准模式.
- */
+/** 这个角色按哪个模式构建。
+ * 集合是部署的事：名单来自 state.modes，宿主侧从 agentPresets.list() 填，
+ * 用户新建或删除预设就换候选项，不用改插件；默认是标准模式。 */
 
 export { WorkdirPanel };

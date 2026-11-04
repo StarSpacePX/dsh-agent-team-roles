@@ -1,9 +1,4 @@
-/**
- * 插件装配与 HTTP 面
- *
- * 批次 F4：从 tests/plugin.test.mjs 拆分而来。test() 回调体逐字未改，只有两类机械调整：
- * import 来源换成本目录的相对路径；测试体里 `new URL('../lib/…')` 加深一层为 `'../../lib/…'`。
- */
+/** 插件装配与 HTTP 面。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -23,7 +18,7 @@ test('apply registers one preset per stored role', async () => {
 
       const definition = registered[0].definition
       assert.equal(definition.name, '架构师')
-      // §7 F3 — 期望值来自 BASH_DISABLED_ON 这张表，不是实现里的 platform 表达式。
+// 期望值来自 BASH_DISABLED_ON 这张表，不是实现里的 platform 表达式。
       assert.equal(definition.plugins.find((row) => row.id === 'tool-bash').disabled, expectedBashDisabled())
 
       const state = await call(routes, STATE_URL)
@@ -31,7 +26,7 @@ test('apply registers one preset per stored role', async () => {
       assert.equal(state.json.registered.includes('team-architect'), true)
       assert.ok(state.json.roles[0].rows.length > 10)
 
-      // Exactly the three exact-match routes the client fetches, nothing else.
+// 正好是客户端要取的那三条精确路由，不多不少。
       assert.deepEqual(
         [...routes.keys()].sort(),
         [`exact ${COMMAND_URL}`, `exact ${STATE_URL}`, `exact ${TEAM_LOG_URL}`],
@@ -52,7 +47,7 @@ test('a profile without a web server still registers roles and opens no route', 
         ['team-architect'],
       )
       assert.equal(routes.size, 0)
-      // The route callback is left waiting exactly as Cordis leaves it.
+// 路由回调保持挂起，跟 Cordis 留着它时一样。
       assert.equal(
         pending.some((entry) => entry.dependencies.includes('webServer')),
         true,
@@ -93,7 +88,7 @@ test('the HTTP surface creates, edits and deletes roles', async () => {
     const row = overridden.json.state.roles[0].rows.find((entry) => entry.id === 'tool-bash')
     assert.equal(row.disabled, false)
     assert.equal(row.hasOverride, true)
-    // Re-registering is how an edit takes effect: the old mount is gone.
+// 重新注册就是编辑生效的方式：旧的挂载已经没了。
     assert.equal(registered.filter((record) => record.id === 'team-reviewer' && !record.disposed).length, 1)
 
     const cleared = await call(routes, COMMAND_URL, 'POST', {
@@ -103,7 +98,7 @@ test('the HTTP surface creates, edits and deletes roles', async () => {
     })
     const clearedRow = cleared.json.state.roles[0].rows.find((entry) => entry.id === 'tool-bash')
     assert.equal(clearedRow.hasOverride, false)
-    // §7 F3 — 同上：清掉 override 后回落到模板的门，期望值走常量表。
+// 同上：清掉 override 后回落到模板的门，期望值同样走常量表。
     assert.equal(clearedRow.disabled, expectedBashDisabled())
 
     const deleted = await call(routes, COMMAND_URL, 'POST', { action: 'delete-role', id: 'team-reviewer' })
@@ -145,8 +140,7 @@ test('clearConfig drops an overridden key, and an emptied entry with it', async 
       action: 'set-override',
       id: 'team-reviewer',
       row: 'agent-instructions',
-      // Both spellings travel together: `null` for hosts that predate
-      // `clearConfig`, which is what actually removes the key here.
+// 两种写法一起走：null 给不认识 clearConfig 的宿主，真正删键的是它。
       config: { instructionFileCandidates: null },
       clearConfig: ['instructionFileCandidates'],
     })
@@ -154,7 +148,7 @@ test('clearConfig drops an overridden key, and an emptied entry with it', async 
     const clearedRow = role.rows.find((entry) => entry.id === 'agent-instructions')
     assert.equal(role.overrides['agent-instructions'], undefined)
     assert.equal(clearedRow.hasOverride, false)
-    // Back to the template value: the snapshot only sets `maxBytes` here.
+// 回到模板值：这份快照只设了 maxBytes。
     assert.deepEqual(clearedRow.config, clearedRow.templateConfig)
     assert.equal(clearedRow.config.instructionFileCandidates, undefined)
   })
@@ -220,9 +214,5 @@ test('a broken roles file is reported instead of taking the plugin down', async 
   }
 })
 
-/**
- * A member's own descriptor label is what names its role, and `agent/created` is
- * the only window in which that binding can still be made: the registry refuses a
- * session that has already started.
- */
-
+/** 成员自己的 descriptor label 就是它的角色名，而 agent/created 是这条绑定还能建立的唯一窗口：
+ * 注册表拒绝已经启动过的会话。 */

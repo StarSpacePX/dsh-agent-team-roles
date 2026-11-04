@@ -1,9 +1,5 @@
-/**
- * 运行时上下文（§5.43 名册 / §5.44 任务唤醒 / §5.45 @ 派发）
- *
- * 批次 F4：从 tests/plugin.test.mjs 拆分而来。test() 回调体逐字未改，只有两类机械调整：
- * import 来源换成本目录的相对路径；测试体里 `new URL('../lib/…')` 加深一层为 `'../../lib/…'`。
- */
+/** 运行时上下文（名册 / 任务唤醒 / @ 派发）。
+ * 从 tests/plugin.test.mjs 拆分而来（超 400 行红线），测试体只做了 import 路径加深一层。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -14,16 +10,9 @@ import { NOTICE_MAX_PER_SESSION, NOTICE_SOURCE, idleMembers } from '../../lib/te
 import { call, withPlugin } from '../support/harness.mjs'
 import { fakeAgent, rosterUp, taskRow, COMMAND_URL } from '../support/plugin-fixtures.mjs'
 
-
-//#region §5.45 — R5 的派发半：「@成员 正文」直接发给成员（用户 m10481 第二条）
-//
-// 背景（探子报告 `Docs\探查-@Enter劫持契约.md`）：这个构建里 `matchEnter` 对
-// `@` 草稿**永远不会被调用** —— conversation 的 onEnter 只把
-// `trimmed.startsWith('/')` 的草稿送进 adjudicate（`…\dsh-client-ui-conversation\lib\client.js:3899-3923`，
-// 契约注释 `…\lib\types\client\input\facade.d.ts:31`：「every '/' line falls to
-// the default sink」）。所以认领走**空格**：`matchSpace` 返回 `{claim}`，token
-// 自带尾随空格把输入置入 claimed 态，随后的回车用 `argsAfter(draft, token)` 把
-// 正文当参数提交 —— 草稿全程不进模型，也不进 Lead 的会话。
+// ---- @ 派发： 「@成员 正文」直接发给成员 ----
+// 这个构建里 matchEnter 对 @ 草稿永远不会被调用（onEnter 只把 / 开头的草稿送进 adjudicate），
+// 所以认领 token 走**空格**。
 
 test('§5.45 the claimed draft reaches the member and rebuilds nothing', async () => {
   await withPlugin(
@@ -135,11 +124,9 @@ test('§5.45 an empty draft, an offline session and a missing runtime are all re
 test('§5.45 the @ source claims on the space and leaves file references alone', async () => {
   const source = await readFile(new URL('../../lib/client.js', import.meta.url), 'utf8')
 
-  // 可选注入：`inputTriggers` 不能进插件自己的 inject 数组 —— 硬依赖会让缺
-  // input-trigger bundle 的 profile 里整块插件不加载（面板与群聊 tab 陪葬）。
-  // `lib/client.js` 现在是 `src/client/**` 的构建产物（`node tools/build-client.mjs`），
-  // 插件对象由入口模块的命名空间拼出：入口那条 `const inject = [...]` 经
-  // `exports.inject` 挂到工厂返回值上；断言认的就是这条常量。
+// 可选注入：inputTriggers 不能进插件自己的 inject 数组 —— 硬依赖会让缺 input-trigger bundle 的
+// profile 里整块插件不加载（面板与群聊 tab 陪葬）。lib/client.js 是构建产物，插件对象由入口模块的
+// 命名空间拼出：入口那条 const inject = [...] 经 exports.inject 挂到工厂返回值上。
   const ownInject = source.match(/const inject = \[([^\]]*)\]/)
   assert.ok(ownInject, '没找到插件的 inject 数组')
   assert.match(source, /exports\.inject = inject/)
@@ -161,11 +148,9 @@ test('§5.45 the @ source claims on the space and leaves file references alone',
 })
 
 test('§5.45 the browser half instantiates under the page module loader', async () => {
-  // `node --check` 只证明语法过得去，证明不了作用域。§5.45 第一版把 @ 源插到了
-  // `function apply(ctx)` **外面**（apply 在群聊 tab 那段就收尾了），于是浏览器
-  // 加载时报 `dsh-agent-team-roles: import failed: ctx is not defined` —— 整个
-  // 插件（连角色面板一起）都起不来，而源码断言测试全绿。所以这里按页面那套
-  // 加载器真的求值一次：stub `window.__ModuleLoader__`，拿到 entry，调 factory。
+// node --check 只证明语法过得去，证明不了作用域。上一版把 @ 源插到 function apply(ctx) 外面
+// （apply 在群聊 tab 那段就收尾了），浏览器加载时报 ctx is not defined，整个插件连角色面板都起不来，
+// 而源码断言测试全绿。所以这里按页面那套加载器真的求值一次：stub window.__ModuleLoader__，调 factory。
   const source = await readFile(new URL('../../lib/client.js', import.meta.url), 'utf8')
 
   let entry

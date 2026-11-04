@@ -1,10 +1,5 @@
-/**
- * 施工批次 A —— P0 宿主半的回归测试（A3 RoleStore 先改内存再落盘）
- *
- * 来源：`tests/p0-host.test.mjs`（468 行，超 400 行红线）。A3 一族自带 `withStore()` /
- * `injectWriteFailure()` 两个夹具，与 A1/A2/A4/A5 不共享可变状态，所以整段搬出来。
- * test() 回调体逐字未改。
- */
+/** P0 宿主半回归测试（A3 RoleStore 先改内存再落盘）。
+ * 自带 withStore() / injectWriteFailure() 两个夹具，从 p0-host.test.mjs 整段搬出来。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, readFile, rm, stat } from 'node:fs/promises'
@@ -24,9 +19,7 @@ async function exists(target) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// A3 — RoleStore 先改内存再落盘：写盘一失败，内存与磁盘就分家
-// ---------------------------------------------------------------------------
+// ---- A3 —— RoleStore 先改内存再落盘：写盘一失败，内存与磁盘就分家 ----
 
 /** Run `run` against a loaded store over a fresh, empty data directory. */
 async function withStore(run) {

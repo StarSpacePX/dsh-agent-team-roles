@@ -1,4 +1,4 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // 上下文继承面板。
 
 import { describe, note, section } from './../notes.js';
@@ -64,27 +64,8 @@ function ContextPanel({ role, busy, onSet }) {
   );
 }
 
-/**
- * §5.47 — 「技能也要能单独配置」(user m11777).
- *
- * The premise that made this look expensive is wrong: a preset is an
- * in-memory declaration and every role is already a derived copy of its
- * mode's declaration (`buildDefinition`), so nothing has to be copied out of the
- * installation — not the preset file, not the skill directories. The
- * `skill-filesystem` row already carries the two knobs a per-role list needs
- * (`includeDefaultRoots: false` + `customSkillDirs`), and the loader accepts a
- * root entry that *is* a skill directory. Ticking a skill therefore only
- * rewrites that one existing row's config with the picked directories.
- *
- * 勾选就是选用 (m11895/m11916) — so ticking a skill switches the role to
- * `pick` by itself; there is no second "use my list" step to forget. A name
- * that went away on disk stays in the list (the intent) and is reported as
- * not mounted rather than silently dropped.
- *
- * Two things are said out loud instead of hidden: 极简模式 ships neither the
- * discovery row nor its consumer, so picking there gains both; and a skill
- * some **global** provider registers is visible to every role no matter what
- * is ticked here — this panel cannot filter a layer it does not own.
- */
+/** 「技能也要能单独配置」。前提不成立：预设是内存里的声明，每个角色本来就是它模式的派生副本
+ * （buildDefinition），所以什么都不用从安装目录拷出来 —— 预设文件、技能目录都不拷。
+ * skill-filesystem 那一行本来就带两个旋钮。 */
 
 export { ContextPanel };

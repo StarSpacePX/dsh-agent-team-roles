@@ -1,5 +1,5 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
-// 插件入口：apply + name/inject（构建器 return 的模块命名空间）。
+// 客户端真正源码（lib/client.js 是 node tools/build-client.mjs 的产物，勿手改）。
+// 插件入口：apply 与 name/inject。
 
 import { foldTeamEvents } from './chat/fold.js';
 import { TeamChatView } from './chat/view.js';
@@ -11,8 +11,7 @@ const name = 'dsh-agent-team-roles';
 const inject = ['slots', 'sessions'];
 
 function apply(ctx) {
-  // 用户 m10429：「把这个设置搬到标签页上面去，参考群聊」——角色配置页从设置页
-  // 搬进会话页签栏，和「群聊」并排（同一个 conversation.view 插槽，顺序排在群聊之后）。
+// 角色配置页放在会话页签栏，和「群聊」并排（同一个 conversation.view 插槽，排在群聊之后）。
   ctx.effect(
     () =>
       ctx.slots.inject('conversation.view', () =>
@@ -24,9 +23,7 @@ function apply(ctx) {
     'dsh-agent-team-roles: roles tab',
   );
 
-  // R7.5 / R7.7 — mount the team chat as its own tab beside 「对话」/「轨迹」.
-  // R6 — and let the user hide it: `settings.hideChatTab` is read before the
-  // tab is mounted, and the settings panel flips it live through `chatTab`.
+// 把团队群聊挂成「对话」/「轨迹」之外的一个页签，并允许用户隐藏：挂载前读 settings.hideChatTab。
   chatTab.mount = () => {
     if (chatTab.disposer !== null || chatTab.stopped) return
     chatTab.disposer = ctx.slots.inject('conversation.view', () =>
@@ -67,10 +64,8 @@ function apply(ctx) {
     chatTab.disposer = null
   };
 
-  // 「普通会话看群聊、监察员工作区看监察群」（用户 m01013/m01040）：进了监察员
-  // 工作区就把这个「群聊」页签卸掉，让位给 dsh-arbiter-roles 的「监察群」。
-  // 判据只有一个来源——dsh-arbiter 自己 /state 的 `workspaceDir`，我们不另配
-  // 路径；读不到就 fail open（照旧显示），绝不因为一次失败把人页签藏没了。
+// 普通会话看群聊、监察员工作区看监察群：进了监察员工作区就把这个页签卸掉，让位给 dsh-arbiter-roles。
+// 判据只有一个来源——dsh-arbiter 自己 /state 的 workspaceDir；读不到就 fail open，不因一次失败藏掉页签。
   ctx.effect(() => {
     let arbiterDir = ''
     const normalize = (value) => {
@@ -79,7 +74,7 @@ function apply(ctx) {
       while (text.length > 1 && text.endsWith('/')) text = text.slice(0, -1)
       return text.toLowerCase()
     }
-    /** 当前会话是否已经在监察员工作区里（工作区读不到时一律 false）。 */
+/** 当前会话是否已经在监察员工作区里（读不到时一律 false）。 */
     const syncWith = (current) => () => {
       let sessionId
       try {
@@ -94,14 +89,13 @@ function apply(ctx) {
       } catch {
         cwd = ''
       }
-      // 末段同名也算同一个工作区（盘符/挂载点不同不影响），与 dsh-arbiter 一致。
+// 末段同名也算同一个工作区（盘符或挂载点不同不影响），与 dsh-arbiter 一致。
       const inside =
         wanted !== '' && cwd !== '' && (cwd === wanted || cwd.split('/').pop() === wanted.split('/').pop())
       chatTab.setOutOfScope(inside)
     }
-    // `uiSession` 由别的插件提供，比本插件晚就绪是常态：`ctx.get` 那一刻可能还是
-    // undefined，那样订阅就永远建不起来（10/18 的 bug：监察员工作区里 [群聊] 还在）。
-    // 用 `ctx.inject` 等它就绪，服务重建时 cordis 会重新执行这一段。
+// uiSession 由别的插件提供，比本插件晚就绪是常态：ctx.get 那一刻还是 undefined，
+// 订阅就永远建不起来。用 ctx.inject 等它就绪，服务重建时 cordis 会重新执行这一段。
     let sync = () => {}
     let scopeStop = null
     ctx.inject(['uiSession'], (scoped) => {
@@ -112,14 +106,14 @@ function apply(ctx) {
       try {
         if (typeof ctx.sessions?.list?.subscribe === 'function') disposers.push(ctx.sessions.list.subscribe(sync))
       } catch {
-        // 会话表不可订阅时只靠当前会话的变化，够用了。
+// 会话表不可订阅时只靠当前会话的变化，够用。
       }
       scopeStop = () => {
         for (const off of disposers) {
           try {
             off()
           } catch {
-            // 退订失败不该影响卸载。
+// 退订失败不该影响卸载。
           }
         }
       }
@@ -131,7 +125,7 @@ function apply(ctx) {
           try {
             off()
           } catch {
-            // 退订失败不该影响卸载。
+// 退订失败不该影响卸载。
           }
         }
       }
@@ -159,8 +153,7 @@ function apply(ctx) {
         if (!chatTab.stopped) chatTab.setHidden(state.hideChatTab === true)
       },
       () => {
-        // Fail open: showing an unwanted tab is recoverable, hiding a
-        // wanted one behind a failed read is not.
+// fail open：多显示一个不该显示的页签可恢复，因一次读取失败而藏掉用户想要的页签不可恢复。
         if (!chatTab.stopped) chatTab.setHidden(false)
       },
     )
@@ -170,16 +163,9 @@ function apply(ctx) {
     }
   }, 'dsh-agent-team-roles: team chat view')
 
-  // §5.45 — R5: 「@成员 正文」直接发给成员，不进 Lead 的会话。
-  //
-  // Enter adjudication does not exist for `@` in this build (the
-  // conversation shell only sends `/` lines to the sources), so the claim
-  // rides **space** instead: the space after a member name hands the line
-  // to us as a claimed command, and the Enter that follows submits it with
-  // the body as the argument. Either way the draft is consumed.
-  //
-  // Optional injection on purpose: a profile without the input-trigger
-  // bundle keeps the roles panel and the 群聊 tab working.
+// R5：「@成员 正文」直接发给成员，不进 Lead 的会话。
+// 本版对 @ 没有 Enter 裁决，所以用空格认领：成员名后的空格把这一行交给我们，随后的 Enter
+// 用正文作为参数提交，草稿因此永远不会到模型那里。
   ctx.inject(['inputTriggers'], (scoped) => {
     const inputTriggers = scoped.inputTriggers;
     if (
@@ -190,7 +176,7 @@ function apply(ctx) {
       return;
     }
 
-    /** The Session a draft is typed in, mapped to the Lead whose team it is. */
+/** 草稿所在的会话 → 它的 Lead。 */
     const leadIdOf = (sessionId) => {
       try {
         const snapshot = ctx.sessions.binding(sessionId)?.session?.getSnapshot?.();
@@ -201,7 +187,7 @@ function apply(ctx) {
       }
     };
 
-    /** Roster: the shared projection first, the event window as the fallback. */
+/** 名册：先用共享投影，事件窗口兜底。 */
     const rosterOf = (leadId) => {
       try {
         const values = ctx.sessions.list.getSnapshot().projectionsBySession[leadId]?.values;
@@ -209,7 +195,7 @@ function apply(ctx) {
           return values.agentTeam.members;
         }
       } catch {
-        // fall through to the event window
+// 回落到事件窗口
       }
       try {
         const window = ctx.sessions.binding(leadId)?.session?.eventSource?.getSnapshot?.();
@@ -233,11 +219,9 @@ function apply(ctx) {
     const teammateNamed = (leadId, name) =>
       teammatesOf(leadId).find((member) => member.name === name);
 
-    /**
-     * Claim the line as our own command: `token` keeps the trailing space
-     * (that is what puts the input into claimed mode), so the text after it
-     * arrives as `args` and the draft never reaches the model.
-     */
+/** 把这一行认领为自己的命令：token 保留尾随空格（这才是进入认领态的原因），
+ * 所以后面的文字作为 args 到来，草稿永远不会到模型。
+ * @param {object} draft @returns {object | null} */
     const claimFor = (leadId, name, shown) => ({
       name: '@team-member',
       token: `${shown} `,
@@ -272,8 +256,7 @@ function apply(ctx) {
         const name = String(token ?? '').replace(/^@/u, '');
         if (name === '') return undefined;
         const leadId = leadIdOf(session.sessionId);
-        // Not a member → hand the token back to the default sink, so file
-        // and Session references keep working exactly as before.
+// 不是成员 → 把 token 交回默认 sink，文件和会话引用照旧工作。
         if (teammateNamed(leadId, name) === undefined) return undefined;
         return { claim: claimFor(leadId, name, `@${name}`) };
       },

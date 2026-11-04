@@ -1,5 +1,5 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
-// 容器第 4 段（原 2257-2411）：派生值 + 事件处理器，汇成视图 vm。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
+// 容器第 4 段：派生值 + 事件处理器，汇成视图 vm。
 
 import { roleIdFromInput } from './role-id.js';
 
@@ -14,7 +14,7 @@ function buildTeamRolesVm(core, drafts, switches) {
     ? draftRoleId.slice(newRoleIdPrefix.length)
     : draftRoleId;
 
-  // 同一个规范化也用在**选中角色**的 id 输入框上（详情面板，名字下面一行）。
+// 同一个规范化也用在选中角色的 id 输入框上（详情面板，名字下面一行）。
   const selectedIdDraft = roleIdFromInput(idDraft, newRoleIdPrefix);
   const selectedMemberName = selectedIdDraft.startsWith(newRoleIdPrefix)
     ? selectedIdDraft.slice(newRoleIdPrefix.length)
@@ -26,12 +26,9 @@ function buildTeamRolesVm(core, drafts, switches) {
     state.roles.some((role) => role.id === selectedIdDraft);
   const idDraftChanged = selected !== null && selectedIdDraft !== selected.id;
 
-  // Mount failures are the one thing `state.registered` cannot show: the
-  // registry's `register()` resolves with a disposer either way and reports a
-  // failed activation as a `broken` diagnostic on its roster instead of
-  // throwing. Without reading that roster a role whose composition is
-  // malformed — a bad row id, a config value the plugin rejects — would look
-  // exactly like a healthy one, and the UI would stay silent about it.
+// 挂载失败是 state.registered 看不出来的唯一一种情况：注册表 register() 无论成败都
+// 返回 disposer，激活失败只体现为 roster 上的 broken 诊断而不抛错。
+// 不读那份 roster，构成有问题的角色会看起来和健康的一样。
   const brokenById = new Map();
   for (const record of state.registry || []) {
     if (record && typeof record.broken === 'string' && record.broken.length > 0) {
@@ -39,24 +36,15 @@ function buildTeamRolesVm(core, drafts, switches) {
     }
   }
 
-  // §E3 — `deferred` 一直有兜底，`registered` 没有：宿主半只发得出 `registered`
-  // 的某些形状时（旧版宿主、状态拼装中途失败、字段被清空），
-  // `state.registered.includes(...)` 会当场抛错把整个设置面板变成空白页。
-  // 口径是：形状不对就当作"不知道"，既不误报「未注册」，也不白屏；
-  // 只有真拿到数组时才照实判断。
+// deferred 一直有兜底，registered 没有：宿主只发得出某些形状时（旧版宿主、
+// 状态拼装中途失败、字段被清空），state.registered.includes(...) 会当场抛错把整个设置面板变白。
+// 口径是：形状不对就当作「不知道」，既不误报未注册，也不白屏；拿到数组才照实判断。
   const deferredIds = Array.isArray(state.deferred) ? state.deferred : [];
   const registeredIds = Array.isArray(state.registered) ? state.registered : null;
 
-  // No provenance sentence up here (m07345 「去掉说明」): each row's
-  // where-does-this-come-from answer is the 「模式」 panel's per-mode tooltip,
-  // which says the composition is read live and how many rows it has.
-  // §5.35 — one switch, one pending key (user m08302: 「为啥我勾选/取消时，
-  // 全部的勾选框都变灰色？变化也很慢」).
-  //
-  // §5.39 — and one *queue*: the click paints immediately (draft), the change
-  // is remembered and leaves as part of the next burst request, so this row
-  // greys for its own round trip and *nothing else moves*; if the write fails
-  // the draft is withdrawn and the box snaps back to what the file says.
+// 来源说明不放在这里：每行「从哪来」的答案见「模式」面板的逐模式提示。
+// 一个开关一个 pending 键：勾一下只灰自己。
+// 而且一个队列：点击立刻画（草稿），变更记进队列，由 burst 定时器并成一条请求。
   const onToggle = (row, enabled) => {
     const key = `row:${row.id}`;
     if (pending.has(key)) return undefined;
@@ -69,8 +57,7 @@ function buildTeamRolesVm(core, drafts, switches) {
     commitSwitches({ mcp: { [server]: enabled === true } }, [key]);
     return undefined;
   };
-  // §5.55 — 插件可见性：和 MCP 那一格同一条队列、同一个 burst 定时器，
-  // 所以点一排工具也只出一条 `set-switches`。
+// 插件可见性与 MCP 那一格同一条队列、同一个 burst 定时器，点一排工具也只出一条 set-switches。
   const onToolToggle = (name, enabled) => {
     const key = `tool:${name}`;
     if (pending.has(key)) return undefined;
@@ -97,12 +84,9 @@ function buildTeamRolesVm(core, drafts, switches) {
       writeDraft(selectedId, { config: { 'tool-subagent': undefined } });
     });
   };
-  // 「全开 / 全关」只有一个入口：分组标题行（以及 MCP 标题行）
-  // 那个复选框。
-  //
-  // §5.39 — 而且整批只发**一条**请求：`commitSwitches` 把它记进队列、120ms 后
-  // 合成一条 `set-switches` 出去，宿主半一次写盘、一次重建 —— 不是一行一条
-  // `set-override`（19 个工具行 = 19 次 rebuild），也没有全局锁把整张表变灰。
+// 「全开 / 全关」只有分组标题行（以及 MCP 标题行）那个复选框一个入口。
+// 整批只发一条请求：commitSwitches 记进队列，120ms 后合成一条 set-switches，
+// 宿主侧一次写盘、一次重建 —— 不是每行一条 set-override。
   const onBulk = (rows, enabled, category) => {
     const key = `group:${category}`;
     if (pending.has(key)) return undefined;
@@ -127,7 +111,7 @@ function buildTeamRolesVm(core, drafts, switches) {
     commitSwitches(patch, [key]);
     return undefined;
   };
-  // §5.55 — 「插件」那一块的全开 / 全关，同 MCP：一条请求带整批目标状态。
+// 「插件」那块的全开 / 全关，同 MCP：一条请求带整批目标状态。
   const onToolBulk = (enabled) => {
     const key = 'tool:*';
     if (pending.has(key)) return undefined;
@@ -142,9 +126,8 @@ function buildTeamRolesVm(core, drafts, switches) {
     commitSwitches(patch, [key]);
     return undefined;
   };
-  // §5.55 — 一个名字前缀组的全开 / 全关（user m18765「一个大类的要能整体勾选」）：组头
-  // 和逐行开关写的是同一种东西（精确工具名），所以一条 `set-switches` 带整组目标状态，
-  // 宿主半一次写盘、一次重建。
+// 一个名字前缀组的全开 / 全关：组头与逐行开关写的是同一种东西（精确工具名），
+// 所以一条 set-switches 带整组目标状态，宿主侧一次写盘、一次重建。
   const onToolGroup = (group, names, enabled) => {
     const key = `toolgroup:${group}`;
     if (pending.has(key)) return undefined;

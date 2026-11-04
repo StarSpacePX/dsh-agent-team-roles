@@ -1,9 +1,5 @@
-/**
- * 运行时上下文（§5.43 名册 / §5.44 任务唤醒 / §5.45 @ 派发）
- *
- * 批次 F4：从 tests/plugin.test.mjs 拆分而来。test() 回调体逐字未改，只有两类机械调整：
- * import 来源换成本目录的相对路径；测试体里 `new URL('../lib/…')` 加深一层为 `'../../lib/…'`。
- */
+/** 运行时上下文（名册 / 任务唤醒 / @ 派发）。
+ * 从 tests/plugin.test.mjs 拆分而来（超 400 行红线），测试体只做了 import 路径加深一层。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -49,10 +45,10 @@ test('§5.43 only the Lead gets the member roster', async () => {
       await harness.emit('agent/created', { agent: lead.agent })
       await harness.emit('agent/created', { agent: mate.agent })
 
-      // §5.64/§5.65 — 成员拿到的不是名册，而是回报骨架。
+// 成员拿到的不是名册，而是回报骨架。
       assert.deepEqual(mate.contexts.map((row) => row.name), ['agent-team-roles:chat-style'])
       assert.match(mate.contexts[0].text, /^回报就是你发给 lead 的/)
-  // §5.65+ — 骨架必须绑定到「send_message 正文」这个动作上，否则模型当成风格建议、省掉 `##`
+// 骨架必须绑定到「send_message 正文」这个动作上，否则模型当成风格建议、省掉 ## 。
   assert.match(LEAD_DISPATCH_LINES[0], /^派活就是你发给成员的/)
       assert.equal(mate.contexts[0].text.includes('**结论**'), true)
       assert.equal(mate.contexts[0].text.includes('**待办**'), true)
@@ -64,15 +60,14 @@ test('§5.43 only the Lead gets the member roster', async () => {
       assert.equal(typeof roster.text, 'function')
 
       const text = roster.text()
-      // 标签里只有行（用户 m17317），叙述句在标签外。
+// 标签里只有行，叙述句在标签外。
       assert.match(text, /你是本会话的 Team Lead/)
       assert.match(text, /<team-roster>\n- 架构师（running，deepseek-flash）/)
       assert.match(text, /- 架构师（running，deepseek-flash）/)
-      // 已完成的成员也逐行带名字（用户 m17074：名册必须有最新成员名称），
-      // 不再折叠成 `已完成 N 人` 这种没有名字的计数。
+// 已完成的成员也逐行带名字，不折叠成「已完成 N 人」这种没有名字的计数。
       assert.match(text, /- reviewer（inactive）/)
       assert.equal(text.includes('已完成'), false)
-      // … and the Lead never lists itself: the roster is who it can address.
+// ……而且 Lead 从不列自己：名册是它能 @ 的人。
       assert.equal(text.includes('- lead（'), false)
       assert.match(text, /send_message/)
     },
@@ -109,7 +104,7 @@ test('§5.43 the roster follows the team and dies with its agent', async () => {
       const [roster] = lead.contexts
       assert.match(roster.text(), /架构师（running）/)
 
-      // A provider that throws would fail prompt assembly, so it may not throw.
+// provider 抛错会让 prompt 组装失败，所以它不许抛。
       harness.teamState.failure = 'team runtime is gone'
       assert.equal(roster.text(), '')
       assert.equal(
@@ -136,13 +131,11 @@ test('§5.43 a member description that looks like a prompt variable cannot break
     async (harness) => {
       const rows = [
         { id: 'lead', name: 'lead', role: 'lead', status: 'running' },
-        // `description` is `spawn_teammate` free text: the runtime constrains
-        // only `name`. It used to ride in the roster and reach `interpolate()`,
-        // which throws on an unknown `{{name}}`. The roster no longer carries it
-        // (D5), so this pins that the payload cannot come back by accident…
+// description 是 spawn_teammate 的自由文本，运行时只约束 name。
+// 它曾经跟着名册走到 interpolate()，那里遇到未知的 {{name}} 会抛；名册不再携带它，
+// 这条钉住载荷不会意外回来……
         { id: 'm1', name: '架构师', role: 'teammate', status: 'running', description: '{{cwd}} 与 {{not_registered}}' },
-        // …while `neutralBraces` still has a job: `name` is the other
-        // user-influenced field that reaches the same interpolation.
+// ……而 neutralBraces 仍有用：name 是另一个会到达同一处插值的用户可控字段。
         { id: 'm2', name: '{{cwd}}', role: 'teammate', status: 'running' },
       ]
       const lead = rosterUp(harness, 'lead', rows)
@@ -159,9 +152,8 @@ test('§5.43 a member description that looks like a prompt variable cannot break
   )
 })
 
-// §5.43 名册互斥（需求 R12，用户 m02696 / m03336）：同一条会话只许一套名册。
-// 判据 = 会话 cwd 落在监察员工作区（`dsh-arbiter` 的 `workspaceDir`，或它的默认工作区）。
-// 命中就整条跳过；普通目录的会话行为与改造前完全一样。
+// 名册互斥：同一条会话只许一套名册。判据 = 会话 cwd 落在监察员工作区
+// （dsh-arbiter 的 workspaceDir，或它的默认工作区）。命中就整条跳过；普通目录会话行为不变。
 test('§5.43 名册互斥：cwd 在监察员工作区 ⇒ 本插件一条 context 都不装', async () => {
   await withPlugin(
     async (harness) => {

@@ -1,15 +1,7 @@
-// accept-live.mjs — 真机浏览器验收：用 agent 浏览器（ego-browser）打开正在运行的 DSH Web GUI，
-// 只读地跑 7 组断言（加载 / 群聊 tab / 消息流排序控件 / 设置里的 Agent Team 角色面板 / 面板文案 / 不卡加载 / 控制台地雷），
-// 失败留截图。不信任 3080 之外的东西：不启动第二个 dsh 实例、不重启任何进程、不 POST /command。
-//
-// 用法：
-//   node tools/accept-live.mjs                 # 读 Start/logs/dsh.log 里的带 token URL
-//   node tools/accept-live.mjs --log <path>    # 换日志
-//   node tools/accept-live.mjs --base <url>    # 换基址（故障注入：指到没人监听的端口必须非 0 退出）
-//   node tools/accept-live.mjs --shot <name>   # 换截图名
-//
-// token 不可配置（每进程随机，见 dsh browser-auth 的 processLaunchToken），只能从启动日志里读；
-// 带 token 访问一次会种下持久 cookie，之后浏览器直接打开 GUI 即可。
+// accept-live.mjs — 真机浏览器验收：用 agent 浏览器打开运行中的 DSH Web GUI，
+// 只读跑 7 组断言（加载 / 群聊 tab / 消息流排序 / 设置里的角色面板 / 面板文案 / 不卡加载 / 控制台地雷），失败留截图。
+// 不启动第二个 dsh 实例、不重启任何进程、不 POST /command。
+// 用法：node tools/accept-live.mjs [--log <path>] [--base <url>] [--shot <dir>]
 import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -28,7 +20,7 @@ const DRIVER = path.join(
   '.dsh', 'profiles', 'web', 'node_modules', 'dsh-ego-browser',
   'runtime', 'ego-linux', 'bin', 'ego-browser.mjs',
 );
-// ego 的 Linux 运行时用 `where` 找不到 Windows 版 Chrome，直接给绝对路径（否则要用户自己设 EGO_LINUX_CHROME）。
+// ego 的 Linux 运行时用 where 找不到 Windows 版 Chrome，直接给绝对路径（否则要用户设 EGO_LINUX_CHROME）。
 const CHROME_CANDIDATES = [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
@@ -37,8 +29,8 @@ const CHROME_CANDIDATES = [
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
 ];
 
-// 断言 4 要求出现的文案。`中文名，如：架构师` 只作为输入框 placeholder 存在；`角色 (` 在 UI 里是全角 `角色（2）`
-// —— 比对前统一去掉空白并把全角括号折成半角，两种写法都能命中。
+// 断言 4 要求出现的文案。「中文名，如：架构师」只作为输入框 placeholder 存在；「角色（2）」是全角 ——
+// 比对前统一去空白、全角括号折半角，两种写法都能命中。
 const PANEL_TEXTS = [
   '启用智能体团队',
   '在会话页签里显示「群聊」',
@@ -53,7 +45,7 @@ const PANEL_TEXTS = [
 ];
 const DRIVER_TIMEOUT_MS = 180_000;
 
-/** 解析命令行；--base/--log/--shot 都是便于排查与故障注入的旋钮。 */
+/** 解析命令行；--base / --log / --shot 是便于排查与故障注入的旋钮。 */
 function parseArgs(argv) {
   const opts = { base: DEFAULT_BASE, log: DEFAULT_DSH_LOG, shot: 'accept-live.png', help: false };
   for (let i = 0; i < argv.length; i++) {
@@ -83,7 +75,7 @@ function targetUrl(opts, tokenUrl) {
   return token ? opts.base.replace(/\/$/, '') + '/?token=' + token : opts.base;
 }
 
-/** 喂给 `ego-browser nodejs` 的脚本。只用 console.log 输出（这个模式下没有 cliLog）。 */
+/** 喂给 ego-browser nodejs 的脚本。只用 console.log 输出（这个模式没有 cliLog）。 */
 function buildPayload(url, shotPath) {
   return `const TARGET_URL = ${JSON.stringify(url)};
 const SHOT = ${JSON.stringify(shotPath)};
@@ -177,8 +169,8 @@ try {
   const descBtn = page.getByRole('button', { name: '↓ 倒序' });
   const hasOrder = (await ascBtn.count()) > 0 && (await descBtn.count()) > 0;
   check(7, '消息流有 ↑ 正序 / ↓ 倒序 控件', hasOrder);
-  // 直接读 DOM 的渲染顺序：标题行（文字以「消息流」开头）的下一个兄弟就是消息列表。
-  // 函数体在页面里执行，拿不到外层的常量，所以键名与正则都写成字面量。
+// 直接读 DOM 的渲染顺序：标题行（文字以「消息流」开头）的下一个兄弟就是消息列表。
+// 函数体在页面里执行，拿不到外层的常量，所以键名与正则都写成字面量。
   const readStream = () => page.evaluate(() => {
     const bar = [...document.querySelectorAll('div')].find((d) => (d.textContent || '').trim().startsWith('消息流'));
     const list = bar ? bar.nextElementSibling : null;

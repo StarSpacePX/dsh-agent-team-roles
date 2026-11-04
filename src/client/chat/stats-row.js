@@ -1,4 +1,4 @@
-// dsh-agent-team-roles 客户端源码（真源码；`lib/client.js` 是 `node tools/build-client.mjs` 的产物，勿手改）。
+// 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // 群聊页签顶部：一行统计数字 + 成员名单 + 「加载更早的消息」。
 
 import { React, h } from './../react.js';
@@ -12,7 +12,7 @@ function TeamChatStats({ p }) {
     h(
       'div',
       { style: chatStyles.header },
-      // 2026-10-13 减框改版：一行「数字 + 标签」的 stat 块，不再用通栏下划线分段。
+// 一行「数字 + 标签」的 stat 块，不用通栏下划线分段。
       h(
         'span',
         { style: chatStyles.stat },
@@ -42,11 +42,10 @@ function TeamChatStats({ p }) {
           )
         : null,
       folded.hasMore ? h('span', { style: chatStyles.note }, '（历史未载完）') : null,
-      // 用户 2026-10-13：「第一行去掉『整份日志』」——常态不再标注日志范围，
-      // 只有上面的「历史未载完」还留着（那是真的没读完，属于提示而非标注）。
+// 常态不标注日志范围，只有「历史未载完」还留着（那是真没读完，属于提示而非标注）。
     ),
-    // §5.48 — 顶部名单读的是合成后的 `roster`：Lead 是 Team 根会话、日志里没有它的
-    // `team/member` 记录，合成的那一行不能被绕过（可见性、渲染、上面的「成员」计数同一口径）。
+// 顶部名单读的是合成后的 roster：Lead 是 Team 根会话、日志里没有它的 team/member 记录，
+// 合成的那一行不能被绕过（可见性、渲染、「成员」计数同一口径）。
     roster.length > 0
       ? h(
           'div',
@@ -56,7 +55,7 @@ function TeamChatStats({ p }) {
               'span',
               {
                 key: String(member.id),
-                // 用户 2026-10-13：顶部角色状态用自己的属性色做背景、白字。
+// 顶部角色状态用自己的属性色做背景、白字。
                 style: rosterChipStyle(colorOfRow(member.id, member.name)),
               },
               `${member.name}${leadIds.has(String(member.id)) ? '（Lead）' : ''} · ${member.phase}`,

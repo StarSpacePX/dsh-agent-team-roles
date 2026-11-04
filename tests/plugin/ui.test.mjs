@@ -1,11 +1,5 @@
-/**
- * 群聊与能力页的**行为**断言：把真的 `lib/client.js` 装进假宿主里跑（假 React +
- * 假 fetch），只断言渲染出来的东西和真发出去的请求。
- *
- * §5.55 / §5.49 角色页签三条（S1–S4）；群聊 C1–C7 覆盖 §5.48 / §5.50 / §5.51 /
- * §5.66 / §5.67 / §5.68。原来的 21 条源码正则断言已按「用户可见行为留下、样式与
- * 机制删掉」改写。
- */
+/** 群聊与能力页的行为断言：把真的 lib/client.js 装进假宿主（假 React + 假 fetch）里跑，
+ * 只断言渲染出来的东西和真发出去的请求。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { BURST_WAIT_MS, mountPanel, role, row, sleep, statePayload, walk } from '../support/client-runtime.mjs'
