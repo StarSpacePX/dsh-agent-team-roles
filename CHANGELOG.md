@@ -1,7 +1,6 @@
 # 变更记录
 
-本文件记录本插件所有值得注意的变更，格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
-版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+按版本记改动，格式照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号照 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
 
@@ -17,7 +16,3 @@
 - 成员绑定：`set-team` 打开团队运行时，`bindMembers` 把新建成员绑到同名角色。
 - 群聊页签：宿主侧把 Lead 会话日志里的 `team/*` 事件折叠成三张表，只读投影，不依赖任何外部数据库。
 - 数据自持：所有数据写在 `<DSH_HOME>/agent-team-roles/`，不碰 shipped preset、不碰 `settings.yaml`、不碰 dsh 包本身。
-
-### 说明
-
-- 首个开源版本。此前的内部迭代按 §5.x 编号记录在本机文档里，未随本仓发布。

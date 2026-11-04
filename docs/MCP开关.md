@@ -14,7 +14,7 @@ kind: "reference"
 
 ## 用
 
-- **一个 server 一个勾选框**，这就是 MCP 这一维度的全部粒度，没有第二层总开关。
+- **一个 server 一个勾选框**，没有第二层总开关。
 - 标题行复选框 = 全部 server 一起开 / 关，半选表示只开了一部分。
 - 数据源是 MCP 连接器自己的存储（`~/.dsh/storages/mcp_connector.json`），插件**只读**。
   在连接器里增删 server，面板下次读取时就能看见。
