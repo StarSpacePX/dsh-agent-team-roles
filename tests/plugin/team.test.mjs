@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { readFile, mkdir, writeFile } from 'node:fs/promises'
 import { TEAM_BUNDLE } from '../../lib/deployment.js'
 import { call, withPlugin } from '../support/harness.mjs'
 import path from 'node:path'
@@ -246,34 +246,46 @@ test('§5.54 re-syncing unchanged roles does not re-mount them', async () => {
 })
 
 test('§5.54 a member creation mounts the deferred role before selecting it', async () => {
-  await withPlugin(
-    async (harness) => {
-      const { routes, registryState, selected } = harness
-      // 改一次配置但不等待重建，让这个角色的挂载落后于 JSON。
-      const write = await call(
-        routes,
-        COMMAND_URL,
-        'POST',
-        { action: 'set-skills', id: 'team-reviewer', mode: 'pick', ids: ['xlsx'] },
-        undefined,
-        { nowait: true },
-      )
-      assert.deepEqual(write.json.result.deferred, ['team-reviewer'])
-      const registers = registryState.registerCalls
+  // 自给自足：`set-skills` 只接受**本部署真的扫得到**的技能名。原先这里写死
+  // `xlsx`，那是作者的 `~/.dsh/skills/xlsx` —— 别人的机器上 `scanSkills` 扫不到，
+  // 命令会答「这个部署里没有技能：xlsx」，用例直接挂。现在用例自带一份技能夹具。
+  await withHome(async (home) => {
+    await mkdir(path.join(home, 'skills', 'xlsx'), { recursive: true })
+    await writeFile(
+      path.join(home, 'skills', 'xlsx', 'SKILL.md'),
+      '---\nname: xlsx\ndescription: 用例夹具\n---\n\n# xlsx\n',
+      'utf8',
+    )
 
-      // 创建窗口里必须先把它挂上：注册表的 `retain()` 对未登记的 id 抛
-      // `agent-preset/not-found`，整条成员创建都会回滚。
-      await createMember(harness, { child: fakeChild('reviewer') })
-      assert.ok(registryState.registerCalls > registers, '创建窗口按需挂载了这个角色')
-      assert.deepEqual(selected.map((entry) => entry.preset), ['team-reviewer'])
+    await withPlugin(
+      async (harness) => {
+        const { routes, registryState, selected } = harness
+        // 改一次配置但不等待重建，让这个角色的挂载落后于 JSON。
+        const write = await call(
+          routes,
+          COMMAND_URL,
+          'POST',
+          { action: 'set-skills', id: 'team-reviewer', mode: 'pick', ids: ['xlsx'] },
+          undefined,
+          { nowait: true },
+        )
+        assert.deepEqual(write.json.result.deferred, ['team-reviewer'])
+        const registers = registryState.registerCalls
 
-      const state = await call(routes, STATE_URL)
-      assert.deepEqual(state.json.deferred, [], '按需挂载之后就不再是待挂载状态')
-    },
-    REVIEWER,
-    { bindMembers: true },
-    { agents: true },
-  )
+        // 创建窗口里必须先把它挂上：注册表的 `retain()` 对未登记的 id 抛
+        // `agent-preset/not-found`，整条成员创建都会回滚。
+        await createMember(harness, { child: fakeChild('reviewer') })
+        assert.ok(registryState.registerCalls > registers, '创建窗口按需挂载了这个角色')
+        assert.deepEqual(selected.map((entry) => entry.preset), ['team-reviewer'])
+
+        const state = await call(routes, STATE_URL)
+        assert.deepEqual(state.json.deferred, [], '按需挂载之后就不再是待挂载状态')
+      },
+      REVIEWER,
+      { bindMembers: true, home },
+      { agents: true },
+    )
+  })
 })
 
 //#endregion §5.54
