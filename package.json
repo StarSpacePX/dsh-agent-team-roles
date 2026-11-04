@@ -1,0 +1,70 @@
+{
+  "name": "dsh-agent-team-roles",
+  "version": "0.1.0",
+  "description": "在 Web GUI 里可视化管理 agent team 的角色：每个角色是一份独立 preset，开关它自己的能力行（工具 / 技能 / MCP / 分组 / loop / AGENTS.md），只引用现有行、不新增行、不改任何现有文件。",
+  "license": "MIT",
+  "author": "StarSpacePX",
+  "homepage": "https://github.com/StarSpacePX/dsh-agent-team-roles#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StarSpacePX/dsh-agent-team-roles.git"
+  },
+  "bugs": {
+    "url": "https://github.com/StarSpacePX/dsh-agent-team-roles/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "agent-team",
+    "roles",
+    "preset",
+    "cordis"
+  ],
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src",
+    "tools",
+    "templates",
+    "docs",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": "^22.19 || >=24",
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
+  },
+  "scripts": {
+    "build:client": "node tools/build-client.mjs",
+    "test": "node tools/build-client.mjs --check && node --test tests/plugin/surface.test.mjs tests/plugin/member-binding.test.mjs tests/plugin/member-binding.window.test.mjs tests/plugin/member-binding.switch.test.mjs tests/plugin/panels.test.mjs tests/plugin/role-admin.test.mjs tests/plugin/role-admin.reset.test.mjs tests/plugin/role-admin.mode.test.mjs tests/plugin/config.test.mjs tests/plugin/modes.test.mjs tests/plugin/team.test.mjs tests/plugin/runtime-context.test.mjs tests/plugin/runtime-context.dispatch.test.mjs tests/plugin/runtime-context.mention.test.mjs tests/plugin/log.test.mjs tests/plugin/role-id.test.mjs tests/plugin/skills.test.mjs tests/plugin/ui.test.mjs tests/plugin/chat-order.test.mjs tests/plugin/style-tokens.test.mjs tests/plugin/limits.test.mjs tests/roles.test.mjs tests/deployment.test.mjs tests/roleFiles.test.mjs tests/teamLog.test.mjs tests/p0-host.test.mjs tests/p0-host-command.test.mjs tests/p0-host-store.test.mjs tests/p0-client.test.mjs tests/p1-host.test.mjs tests/p1-roster.test.mjs tests/p1-client.test.mjs tests/tools.test.mjs tests/notes-drift.test.mjs tests/build-client.test.mjs && node tools/extract-deployment.mjs --check",
+    "test:deployment": "node tools/extract-deployment.mjs --check",
+    "test:drift": "node tools/build-client.mjs --check && node tools/extract-deployment.mjs --check",
+    "accept:live": "node tools/accept-live.mjs",
+    "prepack": "npm run build:client",
+    "prepublishOnly": "npm test"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+# dsh-agent-team-roles：把 agent team 的每个角色做成一份**独立 preset**，
+# 并给它一套可视化配置界面。
+#
+# 角色定义只覆盖「已有能力行」的 disabled / config —— 不新增行、不删行。
+# 下面那条 `- insert:` 插入的是本插件**自己**的启用行（没有它插件根本不会被加载），
+# 它不属于「角色定义」：角色永远只改已有行的 disabled / config。
+# 全部落点都在插件自己的目录里（默认 <DSH_HOME>/agent-team-roles/roles.json），
+# 不碰 shipped preset、不碰 settings.yaml、不碰 dsh 包本身。
+#
+# dir     —— 角色目录；省略/null 即 <DSH_HOME>/agent-team-roles。
+# prefix  —— 新建角色时 preset id 的前缀，避免与 standard / cordis / ptc / minimal 撞名。
+#
+# 没有 template 键：角色的模板就是它 `mode` 指定的那份预设，运行时从 Loader 的声明里
+# **现场读**（§5.62，用户 m13273「只引用，不独立」），插件不再打包任何模式的抄本。
+- insert:
+    - id: dsh-agent-team-roles
+      name: dsh-agent-team-roles
+      config:
+        dir: null
+        prefix: team-

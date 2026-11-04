@@ -1,0 +1,18 @@
+# 依赖与运行时产物
+node_modules/
+
+# 运行时日志（插件本身不写文件日志，这里防的是探针/验收脚本的落点）
+logs/
+*.log
+
+# 临时目录与系统垃圾
+tmp/
+.DS_Store
+Thumbs.db
+
+# 测试截图与测试输出（测试脚本本身要提交）
+tests/**/__screenshots__/
+tests/**/output/
+
+# 提交信息草稿（git commit -F 用，永不提交）
+.git-commit-msg.txt
