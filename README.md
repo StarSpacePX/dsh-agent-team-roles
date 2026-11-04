@@ -5,6 +5,8 @@ kind: "package-reference"
 
 # dsh-agent-team-roles
 
+[English](README.en.md) · 中文
+
 给 dsh 的 agent team 的每个成员定义一个**角色**：每个角色是一枚独立可选的 agent preset，
 再加两个会话页签：「角色」配置页与「群聊」。只延伸官方接口，不改 dsh 一个字节。
 
