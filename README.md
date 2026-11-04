@@ -88,24 +88,17 @@ config:
 - **成员创建失败会永久占用名字。** 这是 dsh 本体的缺陷（登记先于创建、失败只留档不回滚），插件侧修不了。
   缓解方式是控制并发，以及失败后不要改名重试。
 - **群聊页签是只读投影**，没有输入框；要发消息走 `@成员` 或工具。
-- **写配置类改动要重启宿主半**，热加载只覆盖客户端半。
+- **写配置类改动要重启宿主侧**，热加载只覆盖客户端侧。
 - 没有逐行 config 编辑器：面板只做开关，行名 tooltip 里能看到 config。
 
 ## 开发
 
 ```powershell
-npm test              # 客户端产物 --check + 37 个测试文件（279 条）+ 部署快照 --check
-npm run test:drift    # 只跑两条 --check（客户端产物 / 部署快照）
+npm test              # 全量测试
+npm run test:drift    # 只跑产物一致性检查
 npm run build:client  # 改了 src/client/** 后重建 lib/client.js
 npm run accept:live   # 真机验收探针
 ```
-
-共用夹具都在 `tests/support/`：`harness.mjs`（假插件宿主）、`client-runtime*.mjs`
-（把真的 `lib/client.js` 装进假 React 里渲染）、`plugin-fixtures-*.mjs`（各组前置数据）、
-`shipped-presets.mjs`（内置 preset 快照）。测试文件本身只写用例，不复制夹具。
-
-> `npm test` 末尾的部署快照检查会拿本机 profile 补丁比对 `lib/template/deployment.json`；
-> **本机没有可比对的部署时会打印 `--check: SKIP` 并跳过**，不会把别人的 `npm test` 弄红。
 
 ## 许可
 
