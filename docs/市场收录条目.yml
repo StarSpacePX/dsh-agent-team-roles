@@ -1,0 +1,18 @@
+# 市场收录条目（提 PR 用，不是本仓的运行文件）
+#
+# 提交方式：fork https://github.com/awesome-dsh-plugin/awesome-dsh-plugin
+#         新增文件 data/plugins/StarSpacePX__dsh-agent-team-roles.yml
+#         内容照抄下面这份（去掉注释）
+#
+# 硬性前置（CI 会查）：
+#   1. 仓库创建满 1 天
+#   2. 仓库有 `dsh-plugin` topic（settings 页 → Topics）
+#   3. package.json 里有 dsh.bundle（本仓已有：dsh.bundle.patch = ./cordis.patch.yml）
+#   4. 一个 PR 最多 3 条条目
+
+url: https://github.com/StarSpacePX/dsh-agent-team-roles
+name: StarSpacePX/dsh-agent-team-roles
+category: workflow
+description:
+  en: "Manage agent-team roles in the dsh Web GUI: each role becomes its own selectable agent preset with per-role tool, skill and MCP switches."
+  zh: "在 dsh 的 Web GUI 里管理 agent team 角色：每个角色是一枚独立可选的 agent preset，按角色开关工具、技能与 MCP。"
