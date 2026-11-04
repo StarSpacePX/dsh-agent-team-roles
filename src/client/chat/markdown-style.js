@@ -3,7 +3,7 @@
 
 import { blockText } from './fold.js';
 
-// 群聊正文的作用域样式（只作用于自己这张卡片里的 markdown）：
+// 群聊正文的作用域样式（只作用于自己这张卡片里的 markdown）
 // 宿主 markdown 容器带 white-space: pre-wrap，段落又有 16px 上下外边距，一个空行被算两遍。
 // 这里只把块级元素外边距归零，pre-wrap 不动；选择器重复类名是为了压过宿主 CSS module 的权重。
 const MARKDOWN_CLASS = 'atr-chat-md';

@@ -40,7 +40,7 @@ test('binding is off by default, so a delegation keeps inheriting the parent pre
 
 // ---- 确定性的成员 → 角色路径 ----
 
-test('§5.46 the member name is the preset id without its prefix, hashed for a Chinese role name', () => {
+test('the member name is the preset id without its prefix, hashed for a Chinese role name', () => {
 // id 已经带 slug，中文名也不需要拼音：slugify 的哈希兜底正是让 key 能表达的原因。
   assert.equal(memberNameForRole({ id: 'team-r1abc' }, 'team-'), 'r1abc')
   assert.equal(memberNameForRole({ id: 'team-reviewer' }, 'team-'), 'reviewer')
@@ -51,7 +51,7 @@ test('§5.46 the member name is the preset id without its prefix, hashed for a C
   assert.equal(memberNameForRole({}, 'team-'), '')
 })
 
-test('§5.46 a role is found by Team name, never by its human name', () => {
+test('a role is found by Team name, never by its human name', () => {
   const roles = [
     { id: 'team-reviewer', name: 'reviewer', overrides: {} },
     { id: 'team-r1abc', name: '架构师', overrides: {} },
@@ -67,7 +67,7 @@ test('§5.46 a role is found by Team name, never by its human name', () => {
   assert.equal(roleForMemberName(undefined, 'reviewer', 'team-'), undefined)
 })
 
-test('§5.46 a teammate binds by its Team name even when the description names no role', async () => {
+test('a teammate binds by its Team name even when the description names no role', async () => {
   await withPlugin(
     async (harness) => {
       const { selected, teamState, log } = harness
@@ -92,7 +92,7 @@ test('§5.46 a teammate binds by its Team name even when the description names n
   )
 })
 
-test('§5.46 the Team name outranks a descriptor label that names another role', async () => {
+test('the Team name outranks a descriptor label that names another role', async () => {
   await withPlugin(
     async (harness) => {
       const { selected, teamState } = harness
@@ -118,7 +118,7 @@ test('§5.46 the Team name outranks a descriptor label that names another role',
   )
 })
 
-test('§5.46 a plain subagent still binds by its label, and a runtime without Agent Teams changes nothing', async () => {
+test('a plain subagent still binds by its label, and a runtime without Agent Teams changes nothing', async () => {
   await withPlugin(
     async (harness) => {
       const { selected, log } = harness
@@ -137,7 +137,7 @@ test('§5.46 a plain subagent still binds by its label, and a runtime without Ag
   )
 })
 
-test('§5.46 the roster hands the Lead the exact spawn name of every role', () => {
+test('the roster hands the Lead the exact spawn name of every role', () => {
   const text = rosterText(
     [],
     [
@@ -173,7 +173,7 @@ test('a refused binding is reported and never escapes the creation window', asyn
 // 注册表拒绝已经开始过的会话。
       selectFailure.message = 'agent-preset/locked: This session has already started'
       let callerSetupRan = false
-// 组合出来的 setup 由 agents.create 自己 await，所以这个 await 就是断言：
+// 组合出来的 setup 由 agents.create 自己 await，所以这个 await 就是断言
 // 这里 reject 会把整个创建拖垮，连调用方自己的 setup 和其它步骤一起带走。
       await createMember(harness, {
         child: fakeChild('reviewer'),

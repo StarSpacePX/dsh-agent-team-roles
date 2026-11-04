@@ -45,7 +45,7 @@ function TeamRolesColumns(vm) {
                   },
                 },
                 roleLabel,
-// registered 含「已登记但还没挂载」的角色，不是错误：
+// registered 含「已登记但还没挂载」的角色，不是错误
 // 改动已存进 JSON，等这个角色真被用到（创建成员或被选为会话预设）时才构建挂载。
                 deferredIds.includes(role.id)
                   ? h('div', { style: styles.hint }, '已存盘 · 下次用到该角色时生效')

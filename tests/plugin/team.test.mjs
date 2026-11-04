@@ -113,7 +113,7 @@ test('without a plugin manager the switch explains itself and refuses the click'
 
 //#region 部署组合清单的短缓存
 
-test('§5.54 consecutive state reads ask the deployment for its bundles once', async () => {
+test('consecutive state reads ask the deployment for its bundles once', async () => {
   const manager = fakePluginManager({ enabled: true })
   await withPlugin(
     async ({ routes }) => {
@@ -132,7 +132,7 @@ test('§5.54 consecutive state reads ask the deployment for its bundles once', a
   )
 })
 
-test('§5.54 toggling the team patches the cached roster instead of re-reading it', async () => {
+test('toggling the team patches the cached roster instead of re-reading it', async () => {
   const manager = fakePluginManager({ enabled: false, application: 'restart-required' })
   await withPlugin(
     async ({ routes }) => {
@@ -165,7 +165,7 @@ test('§5.54 toggling the team patches the cached roster instead of re-reading i
 /** 写配置不 await sync(presets)：那会拆掉并重挂每个角色，而 /state 的 presets.list() 在有 pending 行时
  * 要等整个 Host Loader，实测一次勾选 10778 ms。现在写路径只落盘 + 标「待挂载」，构建留给后台重建或真正用到的时刻。 */
 
-test('§5.54 a config write answers before anything is registered or diagnosed', async () => {
+test('a config write answers before anything is registered or diagnosed', async () => {
   await withHome(async (home) => {
     await withPlugin(
       async ({ routes, registryState }) => {
@@ -211,7 +211,7 @@ test('§5.54 a config write answers before anything is registered or diagnosed',
   })
 })
 
-test('§5.54 re-syncing unchanged roles does not re-mount them', async () => {
+test('re-syncing unchanged roles does not re-mount them', async () => {
   await withHome(async (home) => {
     await withPlugin(
       async ({ routes, registryState }) => {
@@ -231,7 +231,7 @@ test('§5.54 re-syncing unchanged roles does not re-mount them', async () => {
   })
 })
 
-test('§5.54 a member creation mounts the deferred role before selecting it', async () => {
+test('a member creation mounts the deferred role before selecting it', async () => {
 // 自给自足：set-skills 只接受本部署真的扫得到的技能名，所以用例自带一份技能夹具（曾写死 xlsx，别人的机器上扫不到就挂）。
   await withHome(async (home) => {
     await mkdir(path.join(home, 'skills', 'xlsx'), { recursive: true })

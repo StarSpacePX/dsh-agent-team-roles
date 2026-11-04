@@ -139,7 +139,7 @@ function useTeamRolesDrafts(core) {
     return { ...selected, rows, capabilities };
   }, [selected, draft, state]);
 
-/** 队列，以及它最终变成的那一条请求：
+/** 队列，以及它最终变成的那一条请求
  * 把堆起来的变更合成一条声明式 set-switches（宿主侧一次写盘、一次重建预设），
  * 回包后只 drop 本次携带的键 —— 回包到达时用户可能已经又点了新的。
  * 失败时草稿要被退回，否则界面会停在没写进磁盘的状态上。 */

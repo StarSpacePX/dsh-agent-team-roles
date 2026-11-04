@@ -57,7 +57,7 @@ function GroupedTable({
     return CATEGORY_ORDER.filter((key) => map.has(key)).map((key) => [key, map.get(key)]);
   }, [visible]);
 
-// 分类标题后的数字数的是这一类整体的行数，不是过滤后的：
+// 分类标题后的数字数的是这一类整体的行数，不是过滤后的
 // 不过滤写总数，被过滤掉一部分时写「显示 3 / 共 19」。
   const totals = React.useMemo(() => {
     const map = new Map();

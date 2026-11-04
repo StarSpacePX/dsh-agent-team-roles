@@ -29,7 +29,7 @@ function McpPanel({ role, mcp, pending, onToggle, onBulk, needle = '', onlyChang
       section(
         'MCP 开关',
         'mcpNoState',
-        '宿主半还没重启，这次 /state 还没有 mcp 段——重启 dsh 后这里才会列出连接器里的 server。',
+        '宿主侧还没重启，这次 /state 还没有 mcp 段——重启 dsh 后这里才会列出连接器里的 server。',
       ),
     )
   }

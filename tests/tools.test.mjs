@@ -1,4 +1,4 @@
-/** 覆盖 tools/extract-deployment.mjs --check。它曾因两个互不相干的原因同时红：
+/** 覆盖 tools/extract-deployment.mjs --check。它曾因两个互不相干的原因同时红
  * 不带参数时两个 profile 声明了同一 agent-loop 行（工具拒绝了歧义，而不是接受「一个部署一个值」）；
  * 以及显式参数那条路。这里把这两种情况都钉住。 */
 
@@ -51,7 +51,7 @@ function run(args, env = {}) {
   return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
 }
 
-test('C1: --check 带显式 patch 时，内容一致即 exit 0（修复前因 profile:null 假 drift）', async () => {
+test('C1：-check 带显式 patch 时，内容一致即 exit 0（修复前因 profile:null 假 drift）', async () => {
   const dir = await scratch()
   try {
     const file = path.join(dir, 'web.cordis.patch.yml')
@@ -168,7 +168,7 @@ test('C1: 两个 profile 的 agent-loop 行真的不同才报错，并列出各�
   }
 })
 
-test('A: --check 先跟随快照记录的来源，本机别的 profile 值不同也不影响', async () => {
+test('A：-check 先跟随快照记录的来源，本机别的 profile 值不同也不影响', async () => {
   const home = await scratch()
   const outDir = await scratch()
   try {

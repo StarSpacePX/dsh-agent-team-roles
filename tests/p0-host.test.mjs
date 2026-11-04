@@ -1,4 +1,4 @@
-/** P0 宿主半回归测试（A1 路径逃逸 / A2 notes.json 坏 JSON 与复核反例）。
+/** P0 宿主侧回归测试（A1 路径逃逸 / A2 notes.json 坏 JSON 与复核反例）。
  * 假 Cordis 上下文见 tests/harness.mjs。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'

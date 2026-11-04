@@ -76,7 +76,7 @@ function TeamRolesView(vm) {
         state.team === undefined ? 'hostStale' : state.team.available !== true ? 'teamUnavailable' : state.team.enabled === true ? 'teamOn' : 'teamOff',
         note(
           state.team === undefined
-            ? '宿主半还没重启，重启 dsh 后这个开关才可用。'
+            ? '宿主侧还没重启，重启 dsh 后这个开关才可用。'
             : state.team.available !== true
               ? state.team.reason
               : state.team.enabled === true
@@ -115,7 +115,7 @@ function TeamRolesView(vm) {
       info(
         state.hideChatTab === undefined ? 'hostStale' : 'chatTab',
         state.hideChatTab === undefined
-          ? '宿主半还没重启，重启 dsh 后这个开关才可用。'
+          ? '宿主侧还没重启，重启 dsh 后这个开关才可用。'
           : '关掉后群聊 tab 不再出现，配置与视图都还在；改完立即生效，不用刷新。',
       ),
     ),

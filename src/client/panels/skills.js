@@ -34,7 +34,7 @@ function SkillsPanel({ role, skills, pending, onSet, needle = '', onlyChanged = 
       section(
         '技能',
         'skillsNoState',
-        '宿主半还没重启，这次 /state 还没有 skills 段——重启 dsh 后这里才会列出技能。',
+        '宿主侧还没重启，这次 /state 还没有 skills 段——重启 dsh 后这里才会列出技能。',
       ),
     );
   }
@@ -52,7 +52,7 @@ function SkillsPanel({ role, skills, pending, onSet, needle = '', onlyChanged = 
     else next.delete(name);
     onSet({ mode: 'pick', ids: [...next] }, [`skill:${name}`]);
   };
-// 这一格也是全选（半选 = 只勾了一部分）。勾上就是用、不勾就是不加载：
+// 这一格也是全选（半选 = 只勾了一部分）。勾上就是用、不勾就是不加载
 // 全部不勾 = 这个角色一个技能都不加载；要回到这个模式的默认技能，用下面的还原按钮（那是模式，不是名单）。
   const onBulk = (on) => {
     const keys = available.map((skill) => `skill:${skill.name}`);

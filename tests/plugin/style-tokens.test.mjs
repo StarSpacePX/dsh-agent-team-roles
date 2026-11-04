@@ -137,7 +137,7 @@ test('群聊页的既定值被冻结（逐项对值，防止顺手改 UI）', ()
   assert.equal(chat.palette[9], '#4D7C0F')
 })
 
-test('页签页跟底部输入框卡片同宽同位（用户 m11586）', async () => {
+test('页签页跟底部输入框卡片同宽同位（用户 ）', async () => {
 // 官方输入框卡片 = padding:0 var(--dsh-composer-side-clearance) + width:100%;max-width:var(--dsh-composer-card-max-width)。
 // 本面板照抄这对声明（实测 clearance=16px、卡片上限=712px），于是两块盒子逐像素相同。
 // 不许自己算 64%：那样参照的是 viewArea 而不是会话列，面板会宽出 89px。
@@ -155,7 +155,7 @@ test('页签页跟底部输入框卡片同宽同位（用户 m11586）', async (
   }
 })
 
-test('横排里的控件要撑满面板上限宽度（用户 m11525）', async () => {
+test('横排里的控件要撑满面板上限宽度（用户 ）', async () => {
 // styles.row 是横向 flex，子项默认不拉伸：只给 minWidth 的输入框会停在 180px，右边空出一大块。
 // 口径只有一条——每一排都撑满上限宽度，横排里的输入框/下拉框一律用带 flex 的那两个样式。
   const { styles } = await import('../../src/client/styles.js')

@@ -4,7 +4,7 @@
 const chatTab = {
   disposer: null,
   hidden: null,
-/** 当前会话住在监察员工作区里 → 这个「群聊」页签让位给 dsh-arbiter-roles 的「监察群」：
+/** 当前会话住在监察员工作区里 → 这个「群聊」页签让位给 dsh-arbiter-roles 的「监察群」
  * 普通会话看群聊、监察会话看监察群，两边不叠。这个值由 entry.js 按会话 cwd 算出，
  * 与用户 hideChatTab 开关是两回事，任一为真就不挂。 */
   outOfScope: false,

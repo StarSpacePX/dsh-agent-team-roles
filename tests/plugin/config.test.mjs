@@ -8,7 +8,7 @@ import { call, withPlugin } from '../support/harness.mjs'
 import path from 'node:path'
 import { withHome, definitionOf, argumentText, STATE_URL, COMMAND_URL } from '../support/plugin-fixtures.mjs'
 
-//#region §5.34 — 说明书是数据（m08033）
+//#region — 说明书是数据
 
 test('the panel reads its explanations from notes.json, and a missing file is not an error', async () => {
   await withPlugin(async ({ routes }, dir) => {
@@ -20,7 +20,7 @@ test('the panel reads its explanations from notes.json, and a missing file is no
     assert.deepEqual(state.json.notes.custom, [])
     assert.equal(state.json.notes.values.refresh, DEFAULT_NOTES.refresh)
     assert.equal(state.json.notes.values.teamOff, DEFAULT_NOTES.teamOff)
-    // 客户端兜底用的那句话必须和这里的主键对得上（否则老宿主半下会错位）
+    // 客户端兜底用的那句话必须和这里的主键对得上（否则老宿主侧下会错位）
     assert.equal(NOTE_KEYS.includes('rowsReset'), true)
   })
 })
@@ -111,7 +111,7 @@ test('every explanation the client asks for by key exists in the defaults', asyn
 
 //#endregion
 
-//#region §5.39 — 批量开关：一次手势一个请求（用户 m09376「批量 action必须做」）
+//#region — 批量开关：一次手势一个请求（）
 
 /** set-switches 的要点：N 行进、**一次**预设重建出。
  * 重建是注册表记录的动作（apply 拆掉旧挂载、注册新的），所以数注册次数就是数 sync() 调用，

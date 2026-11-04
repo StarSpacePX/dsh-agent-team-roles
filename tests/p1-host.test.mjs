@@ -281,7 +281,7 @@ test('D4: dshHome 只在指向别处时让位，null / 空串仍然走角色目�
   const pinned = { [INSTRUCTION_ROW_ID]: { config: { dshHome: 'D:/other-home' } } }
   assert.equal(withInstructionHome(pinned, roleHome), pinned)
 
-  // null / 空串是 applyConfig 的「删掉这个键」，不是「别再写这个键」：
+  // null / 空串是 applyConfig 的「删掉这个键」，不是「别再写这个键」
   // 放它赢就等于把同一份 AGENTS.md 交给上游注入两遍。
   for (const value of [null, undefined, '', '   ']) {
     const overrides = { [INSTRUCTION_ROW_ID]: { config: { dshHome: value } } }

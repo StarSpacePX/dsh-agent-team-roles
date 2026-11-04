@@ -7,7 +7,7 @@ import { call, withPlugin } from '../support/harness.mjs'
 import path from 'node:path'
 import { skillHome, STATE_URL, COMMAND_URL } from '../support/plugin-fixtures.mjs'
 
-test('§5.47 /state lists what the deployment\'s own roots hold', async () => {
+test('/state lists what the deployment\'s own roots hold', async () => {
   const { home, push, pptx, solo } = await skillHome()
   try {
     await withPlugin(
@@ -59,7 +59,7 @@ test('§5.47 /state lists what the deployment\'s own roots hold', async () => {
   }
 })
 
-test('§5.47 picking skills rewrites the existing row and nothing else', async () => {
+test('picking skills rewrites the existing row and nothing else', async () => {
   const { home, push } = await skillHome()
   try {
     await withPlugin(
@@ -114,7 +114,7 @@ test('§5.47 picking skills rewrites the existing row and nothing else', async (
   }
 })
 
-test('§5.47 a skill this deployment does not hold is refused, not stored', async () => {
+test('a skill this deployment does not hold is refused, not stored', async () => {
   const { home } = await skillHome()
   try {
     await withPlugin(
@@ -152,7 +152,7 @@ test('§5.47 a skill this deployment does not hold is refused, not stored', asyn
   }
 })
 
-test('§5.47 极简模式 gains the discovery row and its consumer as a pair', async () => {
+test('极简模式 gains the discovery row and its consumer as a pair', async () => {
   const { home, push } = await skillHome()
   try {
     await withPlugin(
@@ -191,7 +191,7 @@ test('§5.47 极简模式 gains the discovery row and its consumer as a pair', a
   }
 })
 
-test('§5.47 both resets forget the decision, and a hand-written config wins', async () => {
+test('both resets forget the decision, and a hand-written config wins', async () => {
   const { home } = await skillHome()
   try {
     await withPlugin(
@@ -249,7 +249,7 @@ test('§5.47 both resets forget the decision, and a hand-written config wins', a
   }
 })
 
-test('§5.47 the browser half offers the per-role skill list', async () => {
+test('the browser half offers the per-role skill list', async () => {
   const source = await readFile(new URL('../../lib/client.js', import.meta.url), 'utf8')
 // 一块面板、一个动作、一个状态字段。
   assert.match(source, /function SkillsPanel\(/)
@@ -258,7 +258,7 @@ test('§5.47 the browser half offers the per-role skill list', async () => {
   assert.match(source, /action:\s*'set-skills'/)
 // 勾选就是选用：勾一下技能，角色自动切 pick。
   assert.match(source, /onSet\(\{\s*mode:\s*'pick'/)
-// 标题右边那格是全选（半选 = 只勾了一部分），不是模式开关：
+// 标题右边那格是全选（半选 = 只勾了一部分），不是模式开关
 // 全不勾 = 一个技能都不加载，回「继承」由下面的还原按钮负责。
   assert.match(source, /const onBulk = \(on\) =>/)
   assert.match(source, /node\.indeterminate = pick && chosen\.size > 0 && !allChosen/)

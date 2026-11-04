@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { call, withPlugin } from '../support/harness.mjs'
 import { withHome, definitionOf, fakeLoader, expectedBashDisabled, STATE_URL, COMMAND_URL } from '../support/plugin-fixtures.mjs'
 
-//#region §5.40 — 模式清单不写死（用户 m09580「从现有的模式中加载 … 不要写死」）
+//#region — 模式清单不写死（）
 
 /**
  * A Loader stand-in. `entries()` returns the plugin entries this deployment
@@ -88,7 +88,7 @@ test('a live preset composes a role from its declaration, `!!js` gates included'
           plugins.map((row) => row.id),
           ['persona', 'tool-bash'],
         )
-        // §7 F3 — Loader 给的 `{ __jsExpr }` 门由 `resolveGate` 解开；期望值是
+        // — Loader 给的 `{ __jsExpr }` 门由 `resolveGate` 解开；期望值是
         // 常量表，不是把同一个 platform 表达式再抄一遍。
         assert.equal(plugins[1].disabled, expectedBashDisabled())
 
@@ -121,7 +121,7 @@ test('角色自己那份预设也列在模式列表里（m07129：默认选中�
         )
 
         const state = await call(routes, STATE_URL)
-        // 部署预设 + 本插件角色的自有预设：用户 m07126「你都有复制品了，你就把复制的也列出来」。
+        // 部署预设 + 本插件角色的自有预设：。
         assert.deepEqual(
           state.json.modes.map((mode) => mode.id),
           ['standard', 'team-architect'],
@@ -134,7 +134,7 @@ test('角色自己那份预设也列在模式列表里（m07129：默认选中�
         const role = state.json.roles.find((item) => item.id === 'team-architect')
         assert.equal(role.presetId, 'team-architect')
         // …but `registry` now reports only the mount health of our own roles
-        // (§5.54) — the deployment's presets are not ours, and reading the roster
+        //  — the deployment's presets are not ours, and reading the roster
         // for them is exactly what made `/state` wait on the Host Loader.
         assert.deepEqual(state.json.registry, [{ id: 'team-architect' }])
       },
@@ -187,7 +187,7 @@ test('set-mode accepts any mode the roster has, and refuses one it does not', as
   })
 })
 
-//#region §5.43 — 成员名册：只有 Lead 知道全部成员（用户 m10481）
+//#region — 成员名册：只有 Lead 知道全部成员（用户 ）
 
 /**
  * The deployment runs every context/section text through `interpolate()` and

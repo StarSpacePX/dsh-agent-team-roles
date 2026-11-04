@@ -8,7 +8,7 @@ import path from 'node:path'
 
 import { interpolateLikeDsh } from './plugin-fixtures-harness.mjs'
 
-/** 一个假活 agent：scope 记下每次 systemPrompt.context() 注册，另给 §5.44 需要的两面——
+/** 一个假活 agent：scope 记下每次 systemPrompt.context() 注册，另给 需要的两面——
  * scope 级 on()（Team 事件发给 appending Session 自己的 context 收集来的观察者）与 followup()。 */
 
 export function fakeAgent() {

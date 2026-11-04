@@ -1,4 +1,4 @@
-/** 角色拥有的文件的单元测试。重点不是字符串处理，而是新角色**从哪个文件**复制规则：
+/** 角色拥有的文件的单元测试。重点不是字符串处理，而是新角色**从哪个文件**复制规则
  * 固定是用户全局 $DSH_HOME/AGENTS.md，别的都不是。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -53,7 +53,7 @@ test('a new role copies the fixed user-global AGENTS.md', async () => {
   })
 })
 
-test('the 10-byte workspace placeholder never mattered (m10123 / m10519)', async () => {
+test('the 10-byte workspace placeholder never mattered (/ m10519)', async () => {
   await withSandbox(async ({ cwd, home }) => {
     await writeFile(path.join(home, 'AGENTS.md'), '# 用户全局规则\n- 始终使用 PowerShell\n', 'utf8')
 

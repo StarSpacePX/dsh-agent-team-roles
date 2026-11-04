@@ -119,7 +119,7 @@ test('composeRows keeps group children as rows of their group', async () => {
 // 角色组合在 dsh-tool-subagent 上保留 modelSelectionSettings: true。
 // 成员在创建窗口里被重绑到角色预设，早于父级 preset-standard 的常驻监听装上自己那份，
 // 于是 list_subagent_models 这个全局具名工具又只有一个归属。
-test('composeRows keeps the globally named subagent catalog (§5.53)', async () => {
+test('composeRows keeps the globally named subagent catalog ', async () => {
   const template = await loadTemplate()
   const raw = template.plugins
     .find((row) => row.id === 'delegation')
@@ -437,7 +437,7 @@ test('buildDefinition wires the role directory into the composed preset', async 
 // 与任务在哪个目录跑无关。
   assert.equal(row.config.dshHome, home)
   assert.equal(row.config.maxBytes, 65536)
-  // No loop row, ever (§5.30): the agent-factory slot is single and taken.
+  // No loop row, ever : the agent-factory slot is single and taken.
   assert.equal(definition.plugins.some((plugin) => /agent-loop/.test(String(plugin.id))), false)
 
   // Without a `dirOf` there is no directory to point at, so nothing is added.
@@ -491,7 +491,7 @@ test('the four known modes are still the deployment’s four, and each is its ow
   assert.deepEqual(await ids('minimal'), ['persona', 'persistent-shell'])
 })
 
-test('normalizeMode keeps a preset id and coerces only what cannot be one (§5.40)', () => {
+test('normalizeMode keeps a preset id and coerces only what cannot be one ', () => {
   for (const mode of MODES) assert.equal(normalizeMode(mode.id), mode.id)
 // roster 属于部署，所以这个构建不发的 id 也是合法模式，不是垃圾。
   assert.equal(normalizeMode('house-style'), 'house-style')
@@ -557,7 +557,7 @@ test('buildDefinition composes the snapshot of the role mode', async () => {
 
 // 颜色是角色文件自己的字段：老角色载入时补写、新角色 upsert 时分配；
 // 任意两个角色不同色，同一个 id 永远同一个色。
-test('§5.59 normalizeRole keeps a legal colour and drops a broken one', () => {
+test('normalizeRole keeps a legal colour and drops a broken one', () => {
   const kept = normalizeRole({ id: 'team-a', name: '甲', color: '#1d4ed8' })
   assert.equal(kept.color, '#1D4ED8', '小写要规范化成大写，否则文件永远到不了不动点')
 
@@ -565,7 +565,7 @@ test('§5.59 normalizeRole keeps a legal colour and drops a broken one', () => {
   assert.equal('color' in dropped, false, '非法颜色不写进文件，留给 RoleStore 补一个')
 })
 
-test('§5.59 an old role file gets a colour written back on load', async () => {
+test('an old role file gets a colour written back on load', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'team-colors-'))
   try {
     await mkdir(path.join(dir, 'team-old'), { recursive: true })
@@ -590,7 +590,7 @@ test('§5.59 an old role file gets a colour written back on load', async () => {
   }
 })
 
-test('§5.59 a new role takes a colour nobody else has', async () => {
+test('a new role takes a colour nobody else has', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'team-colors-'))
   try {
     const store = new RoleStore(dir)
@@ -608,7 +608,7 @@ test('§5.59 a new role takes a colour nobody else has', async () => {
   }
 })
 
-test('§5.59 nextRoleColor stays deterministic once the palette is full', () => {
+test('nextRoleColor stays deterministic once the palette is full', () => {
   const roles = ROLE_PALETTE.map((color, index) => ({ id: `team-${index}`, color }))
   assert.equal(nextRoleColor(roles, 'team-new'), colorForRoleId('team-new'), '调色板用满后退回稳定散列')
   assert.equal(colorForRoleId('team-new'), colorForRoleId('team-new'), '同名同色，不随角色表变化')

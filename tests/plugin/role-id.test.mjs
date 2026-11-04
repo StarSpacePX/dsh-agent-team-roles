@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises'
 
 // 角色 id 就是成员名加 team- 前缀。「新建角色」那一行有 id 输入框，敲下去就先显示最终 id 与成员名。
 
-test('§5.56 the create-role row takes an explicit English id', async () => {
+test('the create-role row takes an explicit English id', async () => {
   const source = await readFile(new URL('../../lib/client.js', import.meta.url), 'utf8')
   assert.match(source, /const \[newId, setNewId\] = React\.useState\(''\)/)
   assert.match(source, /function roleIdFromInput\(value, prefix\)/)
@@ -29,7 +29,7 @@ test('§5.56 the create-role row takes an explicit English id', async () => {
 // 客户端只负责把裸名字补成完整 id、把三种坏情况说清楚、把改动交给 update-role 的 newId；
 // 目录 / 文件 / preset 怎么一起换是宿主的事。
 
-test('§5.57 the detail panel edits the role id under the name field', async () => {
+test('the detail panel edits the role id under the name field', async () => {
   const source = await readFile(new URL('../../lib/client.js', import.meta.url), 'utf8')
 
 // 草稿 + 同步：选中谁就填谁（界面上只写去掉前缀的成员名）。
@@ -53,7 +53,7 @@ test('§5.57 the detail panel edits the role id under the name field', async () 
   assert.match(source, /已经有角色在用这个 ID：\$\{selectedIdDraft\}/)
   assert.match(source, /保存后：角色 ID \$\{selectedIdDraft\} · 成员名 \$\{selectedMemberName\}/)
   // 已经建好的成员不会跟着改名 —— 这句必须留着，否则用户以为改 id 能救回旧成员。
-  // 用户 m03983：常态那行「成员名：…」搬进标题旁边的 ⓘ（键 `roleMemberName`），
+  // 用户 ：常态那行「成员名：…」搬进标题旁边的 ⓘ（键 `roleMemberName`），
   // 框下面只留「非法 / 被占用 / 保存后」三种要当场看见的状态。
   assert.match(source, /已经建好的成员不会跟着改名/)
   assert.match(source, /info\(\s*'roleMemberName',\s*'成员名：\{member\}（spawn_teammate 用这个名字）/)
@@ -64,7 +64,7 @@ test('§5.57 the detail panel edits the role id under the name field', async () 
   assert.match(source, /\.\.\.\(idDraftChanged \? \{ newId: selectedIdDraft \} : null\)/)
   assert.match(source, /if \(payload && payload\.id\) setSelectedId\(payload\.id\)/)
 
-  // §B3 —— 换角色要**一次提交**（用户 m04322：「切换过程中会出现一闪而过的一行红字…
+  // §B3 —— 换角色要**一次提交**（用户 ：「切换过程中会出现一闪而过的一行红字…
   // 整个页面的文字被挤开了」）。只 `setSelectedId` 的话，填表要等跑在绘制之后的 effect，
   // 中间那一帧表单里还是上一个角色的值 → `idDraftTaken` 为真 → 红字闪一下。
   assert.match(source, /const selectRole = \(roleId\) => \{/)
@@ -75,18 +75,18 @@ test('§5.57 the detail panel edits the role id under the name field', async () 
     /const selectRole = \(roleId\) => \{[\s\S]{0,900}setDirty\(null\)[\s\S]{0,200}setSelectedId\(roleId\)[\s\S]{0,600}setIdDraft\(nakedMemberName\(next\.id, prefix\)\)/,
   )
 
-  // 用户 m04461：角色行副标题只留「英文名(中文名)」—— team- 前缀和模式标签不再挤这一行。
+  // 用户 ：角色行副标题只留「英文名(中文名)」—— team- 前缀和模式标签不再挤这一行。
   assert.match(source, /const memberName = nakedMemberName\(role\.id, newRoleIdPrefix\)/)
   assert.match(source, /role\.name !== memberName[\s\S]{0,120}\? `\$\{memberName\}\(\$\{role\.name\}\)`/)
   assert.doesNotMatch(source, /role\.modeLabel \? `\$\{role\.id\} · \$\{role\.modeLabel\}`/)
-  // 用户 m04536：「不要搞两行，只要一行」—— 角色行只有这一串文本，没有第二个 div。
+  // 用户 ：「不要搞两行，只要一行」—— 角色行只有这一串文本，没有第二个 div。
   assert.match(source, /\},\n\s+roleLabel,/)
   assert.doesNotMatch(source, /styles\.id, opacity/)
 })
 
 //#endregion
 
-//#region §7 F1 — `tools.restrict()` 的运行时调用（此前零覆盖）
+//#region — `tools.restrict()` 的运行时调用（此前零覆盖）
 // `fakeTools()` 过去只实现 `schemas()`，于是每个走网关分支的用例都停在
 // `typeof tools.restrict !== 'function'` 那道守卫上（`lib/host/gate.js:46`、
 // `:118`），网关真正调 `restrict()` 隐藏工具的那几行从来没被执行过。

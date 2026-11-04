@@ -10,11 +10,11 @@ import { NOTICE_MAX_PER_SESSION, NOTICE_SOURCE, idleMembers } from '../../lib/te
 import { call, withPlugin } from '../support/harness.mjs'
 import { fakeAgent, rosterUp, taskRow, COMMAND_URL } from '../support/plugin-fixtures.mjs'
 
-//#region §5.44 — 事件驱动派发：任务板变化会唤醒 Lead（用户 m10481 的第三条）
+//#region — 事件驱动派发：任务板变化会唤醒 Lead（用户 的第三条）
 
 /** A `TeamTaskView` with the fields the watcher reads, and sane defaults for the rest. */
 
-test('§5.44 a startable unowned task wakes an idle Lead exactly once per revision', async () => {
+test('a startable unowned task wakes an idle Lead exactly once per revision', async () => {
   await withPlugin(
     async (harness) => {
       const lead = rosterUp(harness, 'lead', [
@@ -51,7 +51,7 @@ test('§5.44 a startable unowned task wakes an idle Lead exactly once per revisi
   )
 })
 
-test('§5.44 a running Lead and a calm board are both left alone', async () => {
+test('a running Lead and a calm board are both left alone', async () => {
   await withPlugin(
     async (harness) => {
       const lead = rosterUp(harness, 'lead', [{ id: 's1', name: 'lead', role: 'lead', status: 'running' }])
@@ -85,7 +85,7 @@ test('§5.44 a running Lead and a calm board are both left alone', async () => {
   )
 })
 
-test('§5.44 a stranded owner is reported, the budget caps the noise, and disposal stops the watch', async () => {
+test('a stranded owner is reported, the budget caps the noise, and disposal stops the watch', async () => {
   await withPlugin(
     async (harness) => {
       const lead = rosterUp(harness, 'lead', [{ id: 's1', name: 'lead', role: 'lead', status: 'inactive' }])
@@ -123,7 +123,7 @@ test('§5.44 a stranded owner is reported, the budget caps the noise, and dispos
   )
 })
 
-test('§5.44 idleMembers only names teammates, and only while work is waiting', () => {
+test('idleMembers only names teammates, and only while work is waiting', () => {
   const members = [
     { name: 'lead', role: 'lead', status: 'inactive' },
     { name: '架构师', role: 'teammate', status: 'inactive' },
@@ -141,7 +141,7 @@ test('§5.44 idleMembers only names teammates, and only while work is waiting', 
   assert.deepEqual(names(idleMembers(undefined, [taskRow('t1')])), [])
 })
 
-test('§5.44 a teammate finishing its turn tells the Lead about the waiting work', async () => {
+test('a teammate finishing its turn tells the Lead about the waiting work', async () => {
   await withPlugin(
     async (harness) => {
       const rows = [

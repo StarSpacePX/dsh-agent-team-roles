@@ -23,7 +23,7 @@ const message = (id, senderId, senderName, targetId) => ({
 
 const teamEvent = (type, data, seq, time = seq * 1000) => ({ type, seq, time, data })
 
-test('§5.50 the projection only knows the four team event types', () => {
+test('the projection only knows the four team event types', () => {
   assert.deepEqual([...TEAM_EVENT_TYPES], [
     'team/member',
     'team/task',
@@ -52,7 +52,7 @@ test('§5.50 the projection only knows the four team event types', () => {
   })
 })
 
-test('§5.50 whole-value records are latest-wins, messages are append-only', () => {
+test('whole-value records are latest-wins, messages are append-only', () => {
   const log = createTeamLog()
   const applied = applyTeamEvents(log, [
     teamEvent('team/member', { version: 2, teamId: 't-1', member: member('m-1', 'alpha', 'provisioning') }, 10),
@@ -74,7 +74,7 @@ test('§5.50 whole-value records are latest-wins, messages are append-only', () 
   assert.deepEqual(out.messages.map((row) => row.delivered), [false, false], '没有 delivered 就是排队中')
 })
 
-test('§5.50 delivery is a second pass, and deleting a task is a tombstone', () => {
+test('delivery is a second pass, and deleting a task is a tombstone', () => {
   const log = createTeamLog()
   applyTeamEvents(log, [
     teamEvent('team/message/queued', { version: 2, teamId: 't-1', message: message('msg-1', 'lead', 'lead', 'm-1') }, 20),
@@ -90,7 +90,7 @@ test('§5.50 delivery is a second pass, and deleting a task is a tombstone', () 
   assert.equal(out.tasks.length, 0, 'deleted 任务是墓碑，不进群聊视图')
 })
 
-test('§5.50 a replayed enqueue keeps one row and takes the newest seq', () => {
+test('a replayed enqueue keeps one row and takes the newest seq', () => {
   const log = createTeamLog()
   applyTeamEvents(log, [
     teamEvent('team/message/queued', { version: 2, teamId: 't-1', message: message('msg-1', 'lead', 'lead', 'm-1') }, 30),
@@ -104,7 +104,7 @@ test('§5.50 a replayed enqueue keeps one row and takes the newest seq', () => {
   assert.equal(out.messages[0].time, 41000)
 })
 
-test('§5.50 messages come out in log order, not in Map insertion order', () => {
+test('messages come out in log order, not in Map insertion order', () => {
   const log = createTeamLog()
 // 故意乱序：replay 可能先给投影器一个更晚的入队，时间线仍要从左到右读。
   applyTeamEvents(log, [
@@ -115,7 +115,7 @@ test('§5.50 messages come out in log order, not in Map insertion order', () => 
   assert.deepEqual(serializeTeamLog(log).messages.map((row) => row.message.id), ['msg-a', 'msg-b'])
 })
 
-test('§5.50 folding is incremental: the same events applied twice are idempotent', () => {
+test('folding is incremental: the same events applied twice are idempotent', () => {
   const log = createTeamLog()
   const events = [
     teamEvent('team/member', { version: 2, teamId: 't-1', member: member('m-1', 'alpha') }, 60),
@@ -131,7 +131,7 @@ test('§5.50 folding is incremental: the same events applied twice are idempoten
   assert.equal(second.applied, 6, 'applied 数的是折叠次数，不是去重后的行数')
 })
 
-test('§5.50 one bad event never poisons the fold', () => {
+test('one bad event never poisons the fold', () => {
   const log = createTeamLog()
   assert.equal(applyTeamEvent(log, { type: 'team/member', seq: 1, data: 'nope' }), false)
   assert.equal(applyTeamEvent(log, { type: 'team/task', seq: 2 }), false)

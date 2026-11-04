@@ -214,5 +214,5 @@ test('a broken roles file is reported instead of taking the plugin down', async 
   }
 })
 
-/** 成员自己的 descriptor label 就是它的角色名，而 agent/created 是这条绑定还能建立的唯一窗口：
+/** 成员自己的 descriptor label 就是它的角色名，而 agent/created 是这条绑定还能建立的唯一窗口
  * 注册表拒绝已经启动过的会话。 */

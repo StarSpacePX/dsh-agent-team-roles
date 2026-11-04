@@ -9,13 +9,13 @@ import { call, withPlugin } from '../support/harness.mjs'
 import path from 'node:path'
 import { fakeChild, REVIEWER, LEAD_AGENT, createMember, CHINESE_ROLE, STATE_URL, COMMAND_URL } from '../support/plugin-fixtures.mjs'
 
-//#region §5.53 — the role is bound inside the creation window
+//#region — the role is bound inside the creation window
 
-/** 绑定从 agent/created 挪进了 dsh 自己挂载预设的那个窗口。这里锁住的契约：
+/** 绑定从 agent/created 挪进了 dsh 自己挂载预设的那个窗口。这里锁住的契约
  * 两个入口都组合（不替换）调用方的 setup；解析顺序与幂等性不变；拒绝被吞掉；
  * announce 监听留作兜底，且不碰已经绑好的子代理。 */
 
-test('§5.53 agents.create binds the role inside the creation window', async () => {
+test('agents.create binds the role inside the creation window', async () => {
   await withPlugin(
     async (harness) => {
       const { selected, log, creation, effects } = harness
@@ -23,7 +23,7 @@ test('§5.53 agents.create binds the role inside the creation window', async () 
         effects.some((effect) => effect.label === 'agent-team-roles: creation window'),
         'the wrapper is installed as its own effect',
       )
-      assert.ok(log.some((entry) => entry.message.includes('§5.53 角色绑定已装到创建窗口')))
+      assert.ok(log.some((entry) => entry.message.includes('角色绑定已装到创建窗口')))
 
       const agent = fakeChild('reviewer')
       await createMember(harness, { child: agent, childCtx: { fiber: { uid: 3 } } })
@@ -41,7 +41,7 @@ test('§5.53 agents.create binds the role inside the creation window', async () 
   )
 })
 
-test('§5.53 agents.resume binds a resumed child the same way', async () => {
+test('agents.resume binds a resumed child the same way', async () => {
   await withPlugin(
     async (harness) => {
       const { selected, creation } = harness
@@ -59,7 +59,7 @@ test('§5.53 agents.resume binds a resumed child the same way', async () => {
   )
 })
 
-test('§5.53 without an Agent Teams runtime the descriptor label still names the role', async () => {
+test('without an Agent Teams runtime the descriptor label still names the role', async () => {
   await withPlugin(
     async (harness) => {
       const { selected, log } = harness
@@ -76,7 +76,7 @@ test('§5.53 without an Agent Teams runtime the descriptor label still names the
   )
 })
 
-test('§5.53 a child already composed into the role is not selected twice', async () => {
+test('a child already composed into the role is not selected twice', async () => {
   await withPlugin(
     async (harness) => {
       const { selected, composedState } = harness
@@ -90,7 +90,7 @@ test('§5.53 a child already composed into the role is not selected twice', asyn
   )
 })
 
-test('§5.53 the announce leaves an already-bound child alone', async () => {
+test('the announce leaves an already-bound child alone', async () => {
   await withPlugin(
     async (harness) => {
       const { selected, emit, composedState } = harness
@@ -106,7 +106,7 @@ test('§5.53 the announce leaves an already-bound child alone', async () => {
   )
 })
 
-test('§5.53 a creation that bypasses the window is still bound at the announce', async () => {
+test('a creation that bypasses the window is still bound at the announce', async () => {
   await withPlugin(
     async (harness) => {
       const { selected, emit } = harness
@@ -120,7 +120,7 @@ test('§5.53 a creation that bypasses the window is still bound at the announce'
   )
 })
 
-test('§5.53 disposing the plugin restores agents.create and agents.resume', async () => {
+test('disposing the plugin restores agents.create and agents.resume', async () => {
   await withPlugin(
     async (harness) => {
       const { agents, agentsOriginal, effects } = harness

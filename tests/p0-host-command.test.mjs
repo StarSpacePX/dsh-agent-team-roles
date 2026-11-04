@@ -1,4 +1,4 @@
-/** P0 宿主半回归测试（A4 /command 全 400 且无日志 / A5 dispose 与注册竞态）。
+/** P0 宿主侧回归测试（A4 /command 全 400 且无日志 / A5 dispose 与注册竞态）。
  * 这两节与 A1/A2/A3 的夹具没有交集，从 p0-host.test.mjs 整段搬出来（超 400 行红线）。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'

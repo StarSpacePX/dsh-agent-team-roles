@@ -1,4 +1,4 @@
-/** 群聊日志（空态窗口边界 / 宿主半日志投影）。
+/** 群聊日志（空态窗口边界 / 宿主侧日志投影）。
  * 投影的纯函数单测在 tests/teamLog.test.mjs；这里放需要假 Session 的那几条。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -11,7 +11,7 @@ import { fakeLeadSession, teamMemberEvent, teamQueuedEvent, teamDeliveredEvent, 
 // 而团队记录可能在更早的位置。所以「窗口里没有团队记录」绝不能渲染成「这个会话从没有过团队」，
 // 页签还得能往前翻。
 
-test('§5.48 an empty team tab walks the log backwards instead of blaming the runtime', async () => {
+test('an empty team tab walks the log backwards instead of blaming the runtime', async () => {
   const source = await readFile(new URL('../../lib/client.js', import.meta.url), 'utf8')
 // 视图保留数据源自己的翻页门，并且知道它有没有。
   assert.match(source, /const canPage = typeof props\.loadOlder === 'function'/)
@@ -34,9 +34,9 @@ test('§5.48 an empty team tab walks the log backwards instead of blaming the ru
 
 //#endregion
 
-//#region §5.50 群聊历史：客户端读投影（源码断言）
+//#region 群聊历史：客户端读投影（源码断言）
 
-test('§5.50 the chat tab reads the host projection, and the local window stays the fallback', async () => {
+test('the chat tab reads the host projection, and the local window stays the fallback', async () => {
   const source = await readFile(new URL('../../lib/client.js', import.meta.url), 'utf8')
 
 // 端点，以及一个短到觉得实时、长到不花钱的轮询间隔（宿主侧增量折叠，一次轮询只读一个切片）。
@@ -66,11 +66,11 @@ test('§5.50 the chat tab reads the host projection, and the local window stays 
 
 //#endregion
 
-// ---- 宿主半的日志投影 ----
+// ---- 宿主侧的日志投影 ----
 // 浏览器只持有会话日志的有界尾巴，宿主侧改从**第一条**事件起折 Lead 自己的日志并提供结果，
 // 于是客户端不用翻页，也不需要 Postgres。下面的假对象是 dsh-session 里这个特性用到的部分。
 
-test('§5.50 the team log route projects the whole Session log, not the client tail', async () => {
+test('the team log route projects the whole Session log, not the client tail', async () => {
   await withPlugin(
     async (harness) => {
 // 团队在很长的会话最开始干过活 —— 正是「记录在 21801、客户端窗口 27883+」的形状。
@@ -108,7 +108,7 @@ test('§5.50 the team log route projects the whole Session log, not the client t
   )
 })
 
-test('§5.50 the projection is folded incrementally, one slice per poll', async () => {
+test('the projection is folded incrementally, one slice per poll', async () => {
   await withPlugin(
     async (harness) => {
       const lead = fakeLeadSession('lead-1', [teamMemberEvent(0, 'm-1', '架构师'), ...fillerEvents(1, 10)])
@@ -135,7 +135,7 @@ test('§5.50 the projection is folded incrementally, one slice per poll', async 
   )
 })
 
-test('§5.50 a log that got shorter (fork / folded replay) restarts the fold', async () => {
+test('a log that got shorter (fork / folded replay) restarts the fold', async () => {
   await withPlugin(
     async (harness) => {
       const lead = fakeLeadSession('lead-1', [teamMemberEvent(0, 'm-1', '架构师'), ...fillerEvents(1, 20)])
@@ -156,7 +156,7 @@ test('§5.50 a log that got shorter (fork / folded replay) restarts the fold', a
   )
 })
 
-test('§5.50 the route refuses politely: 409 for a dead Session, 405 for a POST', async () => {
+test('the route refuses politely: 409 for a dead Session, 405 for a POST', async () => {
   await withPlugin(
     async (harness) => {
       const lead = fakeLeadSession('lead-1', [teamMemberEvent(0, 'm-1', '架构师')])
@@ -186,7 +186,7 @@ test('§5.50 the route refuses politely: 409 for a dead Session, 405 for a POST'
   )
 })
 
-test('§5.50 without the Agent Teams runtime the route says so instead of pretending', async () => {
+test('without the Agent Teams runtime the route says so instead of pretending', async () => {
 // headless profile 根本没有 agents / agentTeams 服务；客户端读到 503，退回自己的事件窗口。
   await withPlugin(
     async (harness) => {
@@ -204,7 +204,7 @@ test('§5.50 without the Agent Teams runtime the route says so instead of preten
   )
 })
 
-test('§5.50 a disposed Session drops its cached projection', async () => {
+test('a disposed Session drops its cached projection', async () => {
   await withPlugin(
     async (harness) => {
       const lead = fakeLeadSession('lead-1', [teamMemberEvent(0, 'm-1', '架构师')])

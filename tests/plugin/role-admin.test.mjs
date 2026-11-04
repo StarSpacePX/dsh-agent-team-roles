@@ -173,7 +173,7 @@ test('the context switch is an override on the row the template already ships', 
         assert.equal(subagentRow().config.provider, 'spawn')
         assert.equal(subagentRow().config.toolName, 'subagent')
 
-        // 「上下文是否继承主会话」 (R8, user m07109 / m07236) is one key on that row.
+        // 「上下文是否继承主会话」 (R8, user / m07236) is one key on that row.
         const on = await call(routes, COMMAND_URL, 'POST', {
           action: 'set-override',
           id: 'team-reviewer',

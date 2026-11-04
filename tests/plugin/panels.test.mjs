@@ -78,7 +78,7 @@ test('state names the deployment preset the rows came from, and no file', async 
   }, REVIEWER)
 })
 
-//#region MCP switches, the workdir panel and the role's own AGENTS.md (R2.3 / R2.4 / §5.30)
+//#region MCP switches, the workdir panel and the role's own AGENTS.md (R2.3 / R2.4 / )
 
 /** 一个只放一份连接器存储文件的 dsh home：MCP 面板读的是**部署的**文件，
  * 想翻开关又不改机器真实的 ~/.dsh/storages/mcp_connector.json 就只能这么造。
@@ -164,13 +164,13 @@ test('the MCP panel lists the deployment servers and a switch materializes one g
   })
 })
 
-//#region §5.55 — 插件可见性（第二个网关：per-role 工具遮蔽）
+//#region — 插件可见性（第二个网关：per-role 工具遮蔽）
 
 /** 一个像 tools.schemas() 会投影出来的根注册表：含 MCP 工具与 run_code。
  * 假服务实现了 restrict() 并记录每次调用与释放 —— 少了它，所有调用方都停在
  * typeof tools.restrict !== 'function' 的守卫上，真正遮工具的那半条路没有覆盖。 */
 
-test('§5.55 the plugin panel lists the root tools minus run_code and the MCP tools', async () => {
+test('the plugin panel lists the root tools minus run_code and the MCP tools', async () => {
   await withHome(async (home) => {
     const long = 'x'.repeat(200)
     await withPlugin(
@@ -200,7 +200,7 @@ test('§5.55 the plugin panel lists the root tools minus run_code and the MCP to
   })
 })
 
-test('§5.55 a tool switch materializes the second gateway row', async () => {
+test('a tool switch materializes the second gateway row', async () => {
   await withHome(async (home) => {
     await withPlugin(
       async ({ registered, routes }) => {
@@ -259,7 +259,7 @@ test('§5.55 a tool switch materializes the second gateway row', async () => {
   })
 })
 
-test('§5.55 set-switches refuses a tool the deployment does not register', async () => {
+test('set-switches refuses a tool the deployment does not register', async () => {
   await withHome(async (home) => {
     await withPlugin(
       async ({ routes }) => {
@@ -305,7 +305,7 @@ test('§5.55 set-switches refuses a tool the deployment does not register', asyn
   })
 })
 
-test('§5.55 an unreadable tool registry is reported, not treated as a refusal', async () => {
+test('an unreadable tool registry is reported, not treated as a refusal', async () => {
   await withHome(async (home) => {
     await withPlugin(
       async ({ routes }) => {

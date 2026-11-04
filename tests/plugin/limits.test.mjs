@@ -8,7 +8,7 @@ import { createHarness, call, withPlugin } from '../support/harness.mjs'
 import path from 'node:path'
 import { withHome, fakeTools, COMMAND_URL, BASH_DISABLED_ON, expectedBashDisabled } from '../support/plugin-fixtures.mjs'
 
-test('§7 F1 the tool gateway hands its deny list to tools.restrict()', () => {
+test('the tool gateway hands its deny list to tools.restrict()', () => {
   const restrictCalls = []
   const harness = createHarness({ tools: fakeTools(['list_agents', 'pwsh', 'run_code'], restrictCalls) })
 
@@ -25,7 +25,7 @@ test('§7 F1 the tool gateway hands its deny list to tools.restrict()', () => {
   assert.equal(restrictCalls[0].disposed, true)
 })
 
-test('§7 F1 the MCP gateway expands a server name into tool names for restrict()', () => {
+test('the MCP gateway expands a server name into tool names for restrict()', () => {
   const restrictCalls = []
   const harness = createHarness({
     tools: fakeTools(
@@ -45,7 +45,7 @@ test('§7 F1 the MCP gateway expands a server name into tool names for restrict(
 
 //#region 平台门的期望值写死，并且逐平台钉住
 
-test('§7 F3 the platform gate resolves per platform, not per host', async () => {
+test('the platform gate resolves per platform, not per host', async () => {
   const snapshot = JSON.parse(
     await readFile(new URL(`../fixtures/presets/${DEFAULT_MODE}.plugins.json`, import.meta.url), 'utf8'),
   )
@@ -71,7 +71,7 @@ test('§7 F3 the platform gate resolves per platform, not per host', async () =>
 
 //#region 1 MB 请求体上限（BODY_LIMIT）
 
-test('§7 F2 a request body over the 1 MB cap is refused with 413 and changes nothing', async () => {
+test('a request body over the 1 MB cap is refused with 413 and changes nothing', async () => {
   await withHome(async (home) => {
     await withPlugin(
       async ({ routes }, dir) => {

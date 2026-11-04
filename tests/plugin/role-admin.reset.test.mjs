@@ -21,7 +21,7 @@ test('create-role gives the role a directory with its own config and instruction
         assert.equal(role.dir, path.join(dir, 'team-reviewer'))
         assert.equal(role.roleFile, path.join(dir, 'team-reviewer', 'role.json'))
         assert.equal(role.agentsMdFile, path.join(dir, 'team-reviewer', 'AGENTS.md'))
-// 角色自己的 AGENTS.md 靠把 agent-instructions 行的 dshHome 指到角色目录接上：
+// 角色自己的 AGENTS.md 靠把 agent-instructions 行的 dshHome 指到角色目录接上
 // 文件就在 home 里，用户不用输路径，也不需要 loop 行才让 dsh 读到它。
         assert.equal(role.agentsMd.dshHome, role.dir)
         assert.equal(role.agentsMd.linked, true)
@@ -51,7 +51,7 @@ test('create-role gives the role a directory with its own config and instruction
 // AGENTS.md 跟着目录走；覆盖行按**行 id** 存，不随改名变；旧 preset 由 commit 的 removed 卸掉。
 // 失败（占名 / 非法 id / 内置 preset 名）必须原地不动。
 
-test('§5.57 renaming a role moves its directory, its file and its preset', async () => {
+test('renaming a role moves its directory, its file and its preset', async () => {
   await withHome(async (home) => {
     await writeFile(path.join(home, 'AGENTS.md'), '# main session rules\n', 'utf8')
 

@@ -32,7 +32,7 @@ const RETRY_BACKOFF_MS = 200;
 
 const CATEGORY_ORDER = ['agents-md', 'skill', 'tool', 'mcp', 'loop', 'group', 'other'];
 const CATEGORY_LABEL = {
-// persona（系统提示词的身份行）和 agent-instructions（规则文件）对用户是一件事：
+// persona（系统提示词的身份行）和 agent-instructions（规则文件）对用户是一件事
 // AGENTS.md 就是身份描述加一些规则。没有独立的「身份」分类。
   'agents-md': '身份与规则',
   skill: '技能',

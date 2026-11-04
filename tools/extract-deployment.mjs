@@ -3,14 +3,14 @@
  * a role can copy, currently just the `agent-loop` declaration.
  *
  * `tools/extract-template.mjs` snapshots the shipped `standard` preset. That
- * preset has no `agent-loop` row (§5.9: it lives only in the profile patch), so
+ * preset has no `agent-loop` row (: it lives only in the profile patch), so
  * "复制标准模式" has nothing to copy until this tool records what the profile
  * actually runs. The value is snapshotted rather than read at runtime because
  * the profile patch is YAML and this plugin ships no YAML parser — the plugin
  * would have to borrow dsh's own `js-yaml`, which is exactly the kind of
  * runtime dependency the standard snapshot exists to avoid.
  *
- * Usage:
+ * Usage
  *   node tools/extract-deployment.mjs [path/to/cordis.patch.yml]
  *   node tools/extract-deployment.mjs --check [path/to/cordis.patch.yml]
  *
@@ -193,7 +193,7 @@ async function resolvePatch(explicit) {
 /**
  * What actually differs between the snapshot's `loop` and the patch's.
  *
- * The comparison must ignore the provenance fields (`patch`, `profile`) —
+ * The comparison must ignore the provenance fields (`patch`, `profile`)
  * including them makes the two forms disagree by construction: the explicit-path
  * branch sets `profile: null`, which can never equal the snapshot's profile name,
  * and the diff then always shows `loop: X → X`, the one field

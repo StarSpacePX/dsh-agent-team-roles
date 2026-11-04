@@ -7,7 +7,7 @@ import { call, withPlugin } from '../support/harness.mjs'
 import path from 'node:path'
 import { REVIEWER, withHome, definitionOf, STATE_URL, COMMAND_URL } from '../support/plugin-fixtures.mjs'
 
-//#region §5.32 模式（m07307 / m07345：「角色详情里加一个四选一」）
+//#region 模式（/ m07345：「角色详情里加一个四选一」）
 
 test('a role composes the mode it is set to, and the reset key returns it to standard', async () => {
   await withHome(async (home) => {
@@ -51,7 +51,7 @@ test('a role composes the mode it is set to, and the reset key returns it to sta
         assert.equal(role.rows.some((row) => row.id === 'tool-presentation'), false)
         assert.equal(definitionOf(registered, id).plugins.some((row) => row.id === 'tool-presentation'), true)
 
-// ……以及极简模式（只发 persona + 一个 terminal 组）。缺项如实报告而不是粉饰：
+// ……以及极简模式（只发 persona + 一个 terminal 组）。缺项如实报告而不是粉饰
 // 没有 agent-instructions 行（角色自己的 AGENTS.md 不会被读），也没有 delegation 行（继承开关无处可动）。
         const toMinimal = await call(routes, COMMAND_URL, 'POST', { action: 'set-mode', id, mode: 'minimal' })
         assert.equal(toMinimal.status, 200)

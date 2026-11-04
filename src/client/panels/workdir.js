@@ -13,7 +13,7 @@ function WorkdirPanel({ role, workdir, busy, onReset }) {
       section(
         '角色工作目录',
         'workdirNoState',
-        '宿主半还没重启，这次 /state 里还没有这一段。',
+        '宿主侧还没重启，这次 /state 里还没有这一段。',
       ),
     );
   }

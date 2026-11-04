@@ -1,4 +1,4 @@
-/** P0 宿主半回归测试（A3 RoleStore 先改内存再落盘）。
+/** P0 宿主侧回归测试（A3 RoleStore 先改内存再落盘）。
  * 自带 withStore() / injectWriteFailure() 两个夹具，从 p0-host.test.mjs 整段搬出来。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'

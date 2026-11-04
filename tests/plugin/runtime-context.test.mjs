@@ -18,7 +18,7 @@ async function flush() {
   for (let turn = 0; turn < 8; turn += 1) await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
-test('§5.65 通信骨架的正文是 templates/通信骨架.md（js 里不再存一份）', async () => {
+test('通信骨架的正文是 templates/通信骨架.md（js 里不再存一份）', async () => {
   const [md, pkg] = await Promise.all([
     readFile(new URL('../../templates/通信骨架.md', import.meta.url), 'utf8'),
     readFile(new URL('../../package.json', import.meta.url), 'utf8'),
@@ -31,7 +31,7 @@ test('§5.65 通信骨架的正文是 templates/通信骨架.md（js 里不再�
   assert.equal(JSON.parse(pkg).files.includes('templates'), true, 'templates 必须随包发布')
 })
 
-test('§5.43 only the Lead gets the member roster', async () => {
+test('only the Lead gets the member roster', async () => {
   await withPlugin(
     async (harness) => {
       const rows = [
@@ -77,7 +77,7 @@ test('§5.43 only the Lead gets the member roster', async () => {
   )
 })
 
-test('§5.43 a roster with no teammates adds nothing, and a non-member agent is left alone', async () => {
+test('a roster with no teammates adds nothing, and a non-member agent is left alone', async () => {
   await withPlugin(
     async (harness) => {
       const lead = rosterUp(harness, 'lead', [{ id: 'lead', name: 'lead', role: 'lead', status: 'running' }])
@@ -96,7 +96,7 @@ test('§5.43 a roster with no teammates adds nothing, and a non-member agent is 
   )
 })
 
-test('§5.43 the roster follows the team and dies with its agent', async () => {
+test('the roster follows the team and dies with its agent', async () => {
   await withPlugin(
     async (harness) => {
       const lead = rosterUp(harness, 'lead', [{ id: 'm1', name: '架构师', role: 'teammate', status: 'running' }])
@@ -126,7 +126,7 @@ test('§5.43 the roster follows the team and dies with its agent', async () => {
   )
 })
 
-test('§5.43 a member description that looks like a prompt variable cannot break assembly', async () => {
+test('a member description that looks like a prompt variable cannot break assembly', async () => {
   await withPlugin(
     async (harness) => {
       const rows = [
@@ -154,7 +154,7 @@ test('§5.43 a member description that looks like a prompt variable cannot break
 
 // 名册互斥：同一条会话只许一套名册。判据 = 会话 cwd 落在监察员工作区
 // （dsh-arbiter 的 workspaceDir，或它的默认工作区）。命中就整条跳过；普通目录会话行为不变。
-test('§5.43 名册互斥：cwd 在监察员工作区 ⇒ 本插件一条 context 都不装', async () => {
+test('名册互斥：cwd 在监察员工作区 ⇒ 本插件一条 context 都不装', async () => {
   await withPlugin(
     async (harness) => {
       const rows = [{ id: 'lead', name: 'lead', role: 'lead', status: 'running' }]
@@ -180,7 +180,7 @@ test('§5.43 名册互斥：cwd 在监察员工作区 ⇒ 本插件一条 contex
   )
 })
 
-test('§5.43 名册互斥：/dsh-arbiter/state 读不到时，仍默认排除 dsh-arbiter 的默认工作区', async () => {
+test('名册互斥：/dsh-arbiter/state 读不到时，仍默认排除 dsh-arbiter 的默认工作区', async () => {
   await withPlugin(
     async (harness) => {
       const rows = [{ id: 'lead', name: 'lead', role: 'lead', status: 'running' }]
@@ -202,7 +202,7 @@ test('§5.43 名册互斥：/dsh-arbiter/state 读不到时，仍默认排除 ds
   )
 })
 
-test('§5.43 名册互斥：用户改过工作区时以 workspaceDir 为准', async () => {
+test('名册互斥：用户改过工作区时以 workspaceDir 为准', async () => {
   const custom = path.join(os.tmpdir(), 'custom-arbiter-workspace')
   await withPlugin(
     async (harness) => {

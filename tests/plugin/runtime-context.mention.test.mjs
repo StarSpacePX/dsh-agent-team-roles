@@ -14,7 +14,7 @@ import { fakeAgent, rosterUp, taskRow, COMMAND_URL } from '../support/plugin-fix
 // 这个构建里 matchEnter 对 @ 草稿永远不会被调用（onEnter 只把 / 开头的草稿送进 adjudicate），
 // 所以认领 token 走**空格**。
 
-test('§5.45 the claimed draft reaches the member and rebuilds nothing', async () => {
+test('the claimed draft reaches the member and rebuilds nothing', async () => {
   await withPlugin(
     async (harness) => {
       const rows = [
@@ -58,7 +58,7 @@ test('§5.45 the claimed draft reaches the member and rebuilds nothing', async (
   )
 })
 
-test('§5.45 an empty draft, an offline session and a missing runtime are all refused', async () => {
+test('an empty draft, an offline session and a missing runtime are all refused', async () => {
   await withPlugin(
     async (harness) => {
       const rows = [
@@ -121,7 +121,7 @@ test('§5.45 an empty draft, an offline session and a missing runtime are all re
   )
 })
 
-test('§5.45 the @ source claims on the space and leaves file references alone', async () => {
+test('the @ source claims on the space and leaves file references alone', async () => {
   const source = await readFile(new URL('../../lib/client.js', import.meta.url), 'utf8')
 
 // 可选注入：inputTriggers 不能进插件自己的 inject 数组 —— 硬依赖会让缺 input-trigger bundle 的
@@ -147,7 +147,7 @@ test('§5.45 the @ source claims on the space and leaves file references alone',
   assert.match(source, /foldTeamEvents/)
 })
 
-test('§5.45 the browser half instantiates under the page module loader', async () => {
+test('the browser half instantiates under the page module loader', async () => {
 // node --check 只证明语法过得去，证明不了作用域。上一版把 @ 源插到 function apply(ctx) 外面
 // （apply 在群聊 tab 那段就收尾了），浏览器加载时报 ctx is not defined，整个插件连角色面板都起不来，
 // 而源码断言测试全绿。所以这里按页面那套加载器真的求值一次：stub window.__ModuleLoader__，调 factory。
@@ -182,6 +182,6 @@ test('§5.45 the browser half instantiates under the page module loader', async 
 
 //#endregion
 
-//#region §5.47 技能单独配置（用户 m11777：「技能也要能单独配置」）
+//#region 技能单独配置（用户 ：「技能也要能单独配置」）
 
 /** A deployment of one skill directory, plus the file-shaped skill beside it. */

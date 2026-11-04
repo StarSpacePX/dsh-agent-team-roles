@@ -3,7 +3,7 @@
 
 //#region 群聊 tab（R7.5 / R7.7 / R7.8）
 /**
- * The shipped Agent Teams UI states its own limitation in its README:
+ * The shipped Agent Teams UI states its own limitation in its README
  * 「**没有 mailbox timeline**——投影视图只承载 roster 与任务；不显示 peer 消息」。
  *
  * The messages are not actually invisible — they are durable Session events of

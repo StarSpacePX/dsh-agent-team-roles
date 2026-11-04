@@ -13,7 +13,7 @@ function ModePanel({ role, modes, busy, onSet }) {
   const listed = list !== null && actual !== '' && list.some((mode) => mode.id === actual);
   const current = listed ? actual : role.mode || 'standard';
   const known = list === null ? [] : list.map((mode) => mode.id);
-// 角色自己的模式永远是一个选项，哪怕 roster 已经不再提供它（预设被删）：
+// 角色自己的模式永远是一个选项，哪怕 roster 已经不再提供它（预设被删）
 // 已存盘的角色必须还能读，也不能只是打开面板就把值悄悄跳到别的模式。
   const options =
     list === null || known.includes(current)
@@ -28,7 +28,7 @@ function ModePanel({ role, modes, busy, onSet }) {
       section(
         '模式',
         'modeNoState',
-        '宿主半还没重启，这次 /state 里还没有 modes 段。',
+        '宿主侧还没重启，这次 /state 里还没有 modes 段。',
       ),
     );
   }

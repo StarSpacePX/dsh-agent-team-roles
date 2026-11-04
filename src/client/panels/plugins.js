@@ -38,7 +38,7 @@ function PluginsPanel({
       section(
         '插件',
         'toolGateNoState',
-        '宿主半还没重启，这次 /state 还没有 toolGate 段——重启 dsh 后这里才会列出部署全局注册的工具。',
+        '宿主侧还没重启，这次 /state 还没有 toolGate 段——重启 dsh 后这里才会列出部署全局注册的工具。',
       ),
     );
   }
