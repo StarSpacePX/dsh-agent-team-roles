@@ -52,6 +52,9 @@
     "prepack": "npm run build:client",
     "prepublishOnly": "npm test"
   },
+  "devDependencies": {
+    "js-yaml": "^4.3.2"
+  },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
