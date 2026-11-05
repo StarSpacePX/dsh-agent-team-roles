@@ -11,7 +11,7 @@
 # prefix  —— 新建角色时 preset id 的前缀，避免与 standard / cordis / ptc / minimal 撞名。
 #
 # 没有 template 键：角色的模板就是它 `mode` 指定的那份预设，运行时从 Loader 的声明里
-# **现场读**（§5.62，用户 m13273「只引用，不独立」），插件不再打包任何模式的抄本。
+# 现场读，插件不打包任何模式的抄本。
 - insert:
     - id: dsh-agent-team-roles
       name: dsh-agent-team-roles

@@ -91,6 +91,8 @@ config:
 
 ## 开发
 
+下面的命令只在克隆仓库开发时可用（npm 包里不含 `tests/`）。
+
 ```powershell
 npm test              # 全量测试
 npm run test:drift    # 只跑产物一致性检查
