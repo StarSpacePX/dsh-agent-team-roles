@@ -116,7 +116,6 @@ export function createRuntime(options = {}) {
         effects.push(cell)
       }
     },
-// 群聊视图用 useLayoutEffect 在首帧前把宿主滚动条拉回顶部；这里跟 useEffect 同一时机，断言只看「挂载后 scrollTop 变没变」。
     useLayoutEffect(fn, deps) {
       React.useEffect(fn, deps)
     },
@@ -153,7 +152,6 @@ export function createRuntime(options = {}) {
     for (let index = 0; index < node.children.length; index += 1) {
       node.children[index] = renderElement(node.children[index], `${at}/${String(node.type)}.${index}`)
     }
-// 宿主节点的 ref 要真指到节点：群聊视图靠 rootRef.current.parentElement 往上找滚动容器。
     if (node.props.ref !== undefined && node.props.ref !== null && typeof node.props.ref === 'object') {
       node.props.ref.current = node
     }

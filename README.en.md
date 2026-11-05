@@ -1,5 +1,5 @@
 ---
-description: "One role preset per agent-team member for dsh, plus a role settings tab and a read-only team chat tab."
+description: "One role preset per agent-team member for dsh, plus a role settings tab."
 kind: "package-reference"
 ---
 
@@ -8,7 +8,7 @@ kind: "package-reference"
 # dsh-agent-team-roles
 
 Give every member of a dsh agent team its own **role**: each role is a separate, selectable agent
-preset, plus two session tabs — "Roles" for settings and "Chat" for the team message flow. It only
+preset, plus one session tab — "Roles" for settings. Team messages use the official chat tab. It only
 extends public interfaces; not a byte of dsh itself is patched.
 
 ## What it does
@@ -21,7 +21,6 @@ extends public interfaces; not a byte of dsh itself is patched.
 | Skills per role | Skill rows and their order are stored per role and assembled on the host side once |
 | MCP switches | Off means that role's agent cannot see that MCP server's tools (a visibility filter, not another connection) |
 | Team switch and member binding | `set-team` starts the team runtime; `bindMembers` binds a new member to the role of the same name |
-| "Chat" tab | One message flow across the whole team without switching sessions; read-only projection, no external database |
 | `@member` dispatch | The Lead sees every member; `@name` delivers straight to that member; task-board changes wake the Lead |
 
 ## Install
@@ -54,7 +53,7 @@ code.
    Both steps report either "applied" or "saved, takes effect after restarting dsh".
 3. Click "**New role**". It starts from the deployment's current preset; use the capability table to
    switch tools / skills / MCP. Role ids get the `team-` prefix by default.
-4. Assign that preset to a member. The "Chat" tab then shows the team message flow.
+4. Assign that preset to a member. Team messages show up in the official chat tab.
 
 ## Configuration
 
@@ -95,7 +94,7 @@ will actually need: [配置项](docs/配置项.md) (configuration), [启用与�
 
 - **A failed member creation keeps its name forever.** That is a dsh limitation; the plugin cannot
   fix it. Create one member at a time, and do not retry with a renamed member after a failure.
-- **The "Chat" tab is read-only.** To send something, use `@member` or a tool.
+- **Team messages are read in the official chat tab.** To send one, use `@member` or a tool.
 - **Changes to stored config need a dsh restart**; interface changes only need a page refresh.
 - The settings panel only flips switches — there is no per-row config editor. Hover a row name to
   see that row's config.

@@ -8,7 +8,6 @@ import path from 'node:path'
 
 export const STATE_URL = '/api/dsh-agent-team-roles/state'
 export const COMMAND_URL = '/api/dsh-agent-team-roles/command'
-export const TEAM_LOG_URL = '/api/dsh-agent-team-roles/team-log'
 
 /** 平台门的期望值表：shipped 模板里 tool-bash 只在 Windows 上禁用。断言用这张表而非实现表达式
  * 把实现表达式抄进断言（自证式）；表里没有的平台直接报错，不退回默认值。 */

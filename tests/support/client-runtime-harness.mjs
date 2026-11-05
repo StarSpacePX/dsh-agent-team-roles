@@ -22,9 +22,6 @@ export async function mountPanel(options = {}) {
     commandCalls: 0,
     commands: [],
     aborted: 0,
-// 「群聊」tab 在 apply 时就自己读一次 /state。它属于插件挂载期间的请求、跟面板渲染无关，
-// 所以按 scope 分开计数：用例只断言 panel 那一份。
-    scopeCalls: { 'chat-tab': 0, panel: 0 },
     // stateReply / commandReply 给用例改：返回 payload，或抛错。
     stateReply: options.stateReply || null,
     commandReply: options.commandReply || null,
@@ -64,15 +61,10 @@ export async function mountPanel(options = {}) {
       })
       if (target.includes('/api/dsh-agent-team-roles/state')) {
         net.stateCalls += 1
-// 第 1 次 /state 是「群聊」tab 在 apply 时自己发的，跟面板刷新链无关：这里直接让它一次成功，
-// 免得它的超时/重试混进面板计数。
-        const isChatTab = net.stateCalls === 1
-        const scope = isChatTab ? 'chat-tab' : 'panel'
-        net.scopeCalls[scope] += 1
-        const call = net.scopeCalls[scope]
+        const scope = 'panel'
+        const call = net.stateCalls
         return Promise.race([
           (async () => {
-            if (isChatTab) return jsonReply(statePayload())
             const produced = net.stateReply ? await net.stateReply(call, scope) : net.state
             if (produced && produced.__reply === true) return jsonReply(produced.payload, produced.status)
             return jsonReply(produced)
@@ -91,13 +83,6 @@ export async function mountPanel(options = {}) {
           })(),
           abortWatch,
         ])
-      }
-      if (target.includes('/api/dsh-agent-team-roles/team-log')) {
-// 群聊视图每 TEAM_LOG_POLL_MS(4000) 拉一次宿主投影；默认回「读不到」，视图退回本地事件窗口。
-// 用例要测合并时给 teamLogReply。
-        const produced = options.teamLogReply ? options.teamLogReply(target) : { __reply: true, status: 404, payload: {} }
-        if (produced && produced.__reply === true) return jsonReply(produced.payload, produced.status)
-        return jsonReply(produced)
       }
       throw new Error(`client-runtime: 意外的 fetch ${target}`)
     },
@@ -273,30 +258,9 @@ export async function mountPanel(options = {}) {
   panel.clickSwitchCheckbox = clickSwitchCheckbox
   panel.reloadWith = reloadWith
 
-// 注册表：apply() 装角色配置页与群聊视图。群聊那条是 apply 里 fetchState() 成功后
-// 由 chatTab.setHidden(false) → chatTab.mount() 触发的，所以它一定也在 captured 里。
+// 注册表：apply() 只装角色配置页。
   panel.registration = (id) => captured.find((item) => item.meta && item.meta.id === id)
   panel.registrations = () => captured.map((item) => item.meta && item.meta.id)
-
-  const chatProps = {
-    sessionId: 'lead-1',
-    subscribe: () => () => {},
-    getWindow: () => ({ entries: [], hasMore: false }),
-    ...(options.chat === undefined ? {} : options.chat),
-  }
-
-  // 用真群聊视图替换角色页签：props 就是宿主 inject 出来的那份 event source 形状。
-  panel.mountChat = async (props = {}) => {
-    const registration = panel.registration('team-chat')
-    assert.ok(
-      registration,
-      `没有捕获到 conversation.view 的 team-chat 注册（实际注册：${panel.registrations().join(', ') || '(无)'}）`,
-    )
-    runtime.unmount()
-    runtime.mount((incoming) => registration.component(incoming), { ...chatProps, ...props })
-    await runtime.settle()
-    return panel
-  }
 
   return panel
 }

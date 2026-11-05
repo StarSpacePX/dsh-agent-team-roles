@@ -1,17 +1,15 @@
 // 客户端真正源码（lib/client.js 是 node tools/build-client.mjs 的产物，勿手改）。
 // 插件入口：apply 与 name/inject。
 
-import { foldTeamEvents } from './chat/fold.js';
-import { TeamChatView } from './chat/view.js';
-import { chatTab } from './entries.js';
-import { command, fetchArbiterWorkspace, fetchState } from './net.js';
+import { foldTeamEvents } from './team-events.js';
+import { command } from './net.js';
 import { TeamRolesSection } from './section/team-roles.js';
 
 const name = 'dsh-agent-team-roles';
 const inject = ['slots', 'sessions'];
 
 function apply(ctx) {
-// 角色配置页放在会话页签栏，和「群聊」并排（同一个 conversation.view 插槽，排在群聊之后）。
+// 角色配置页放在会话页签栏（conversation.view 插槽）。
   ctx.effect(
     () =>
       ctx.slots.inject('conversation.view', () =>
@@ -22,146 +20,6 @@ function apply(ctx) {
       ),
     'dsh-agent-team-roles: roles tab',
   );
-
-// 把团队群聊挂成「对话」/「轨迹」之外的一个页签，并允许用户隐藏：挂载前读 settings.hideChatTab。
-  chatTab.mount = () => {
-    if (chatTab.disposer !== null || chatTab.stopped) return
-    chatTab.disposer = ctx.slots.inject('conversation.view', () =>
-      ctx.slots.register(
-        {
-          name: 'conversation.view',
-          id: 'team-chat',
-          order: 20,
-          label: () => '群聊',
-          inject: (sessionId) => {
-            const session = ctx.sessions.binding(sessionId)?.session;
-            if (session === undefined) {
-              throw new Error(`dsh-agent-team-roles: session "${sessionId}" is unavailable`);
-            }
-            const source = session.eventSource;
-            return {
-              sessionId,
-              subscribe: (listener) => source.subscribe(listener),
-              getWindow: () => source.getSnapshot(),
-              loadOlder:
-                typeof session.loadOlder === 'function'
-                  ? async () => {
-                      const before = source.getSnapshot();
-                      await session.loadOlder();
-                      return source.getSnapshot() !== before;
-                    }
-                  : undefined,
-            };
-          },
-        },
-        TeamChatView,
-      ),
-    )
-  };
-  chatTab.unmount = () => {
-    if (chatTab.disposer === null) return
-    chatTab.disposer()
-    chatTab.disposer = null
-  };
-
-// 普通会话看群聊、监察员工作区看监察群：进了监察员工作区就把这个页签卸掉，让位给 dsh-arbiter-roles。
-// 判据只有一个来源——dsh-arbiter 自己 /state 的 workspaceDir；读不到就 fail open，不因一次失败藏掉页签。
-  ctx.effect(() => {
-    let arbiterDir = ''
-    const normalize = (value) => {
-      if (typeof value !== 'string') return ''
-      let text = value.trim().replace(/\\/gu, '/')
-      while (text.length > 1 && text.endsWith('/')) text = text.slice(0, -1)
-      return text.toLowerCase()
-    }
-/** 当前会话是否已经在监察员工作区里（读不到时一律 false）。 */
-    const syncWith = (current) => () => {
-      let sessionId
-      try {
-        sessionId = current?.getSnapshot?.()?.key
-      } catch {
-        sessionId = undefined
-      }
-      const wanted = normalize(arbiterDir)
-      let cwd = ''
-      try {
-        cwd = normalize(ctx.sessions.list.getSnapshot().byId[sessionId]?.cwd)
-      } catch {
-        cwd = ''
-      }
-// 末段同名也算同一个工作区（盘符或挂载点不同不影响），与 dsh-arbiter 一致。
-      const inside =
-        wanted !== '' && cwd !== '' && (cwd === wanted || cwd.split('/').pop() === wanted.split('/').pop())
-      chatTab.setOutOfScope(inside)
-    }
-// uiSession 由别的插件提供，比本插件晚就绪是常态：ctx.get 那一刻还是 undefined，
-// 订阅就永远建不起来。用 ctx.inject 等它就绪，服务重建时 cordis 会重新执行这一段。
-    let sync = () => {}
-    let scopeStop = null
-    ctx.inject(['uiSession'], (scoped) => {
-      const current = scoped.uiSession?.adapter?.current
-      sync = syncWith(current)
-      const disposers = []
-      if (current && typeof current.subscribe === 'function') disposers.push(current.subscribe(sync))
-      try {
-        if (typeof ctx.sessions?.list?.subscribe === 'function') disposers.push(ctx.sessions.list.subscribe(sync))
-      } catch {
-// 会话表不可订阅时只靠当前会话的变化，够用。
-      }
-      scopeStop = () => {
-        for (const off of disposers) {
-          try {
-            off()
-          } catch {
-// 退订失败不该影响卸载。
-          }
-        }
-      }
-      sync()
-      return () => {
-        scopeStop = null
-        sync = () => {}
-        for (const off of disposers) {
-          try {
-            off()
-          } catch {
-// 退订失败不该影响卸载。
-          }
-        }
-      }
-    })
-    fetchArbiterWorkspace().then(
-      (dir) => {
-        arbiterDir = dir
-        sync()
-      },
-      () => {
-        arbiterDir = ''
-        sync()
-      },
-    )
-    sync()
-    return () => {
-      if (scopeStop !== null) scopeStop()
-    }
-  }, 'dsh-agent-team-roles: chat tab scope')
-
-  ctx.effect(() => {
-    chatTab.stopped = false
-    fetchState().then(
-      (state) => {
-        if (!chatTab.stopped) chatTab.setHidden(state.hideChatTab === true)
-      },
-      () => {
-// fail open：多显示一个不该显示的页签可恢复，因一次读取失败而藏掉用户想要的页签不可恢复。
-        if (!chatTab.stopped) chatTab.setHidden(false)
-      },
-    )
-    return () => {
-      chatTab.stopped = true
-      chatTab.unmount()
-    }
-  }, 'dsh-agent-team-roles: team chat view')
 
 // R5：「@成员 正文」直接发给成员，不进 Lead 的会话。
 // 本版对 @ 没有 Enter 裁决，所以用空格认领：成员名后的空格把这一行交给我们，随后的 Enter

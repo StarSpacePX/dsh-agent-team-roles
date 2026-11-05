@@ -102,23 +102,6 @@ function TeamRolesView(vm) {
             teamResult.error ? ` —— ${teamResult.error}` : ''
           }${teamResult.warnings && teamResult.warnings.length > 0 ? `（${teamResult.warnings.join('；')}）` : ''}`,
         ),
-    h(
-      'label',
-      { style: styles.row },
-      h('input', {
-        type: 'checkbox',
-        checked: state.hideChatTab !== true,
-        disabled: busy || state.hideChatTab === undefined,
-        onChange: (event) => run({ action: 'set-hide-chat-tab', enabled: !event.target.checked }),
-      }),
-      '在会话页签里显示「群聊」',
-      info(
-        state.hideChatTab === undefined ? 'hostStale' : 'chatTab',
-        state.hideChatTab === undefined
-          ? '宿主侧还没重启，重启 dsh 后这个开关才可用。'
-          : '关掉后群聊 tab 不再出现，配置与视图都还在；改完立即生效，不用刷新。',
-      ),
-    ),
 // 新建区三行：两个输入框各占一整行，按钮单独一行（按钮不拉满，与「保存 / 全部还原 / 删除角色」那行一致）。
     h(
       'div',

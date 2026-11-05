@@ -18,7 +18,7 @@ try {
 
 // 宿主渲染器从 context.labels.code.copyLabel 读代码围栏复制按钮的文案；
 // 只传 text / variant 时 labels 是 undefined，渲染任意带代码围栏的正文即抛 TypeError，
-// 整个 conversation.view 插槽被错误边界摘掉（现象是群聊页签整片空白）。这里由插件自己补齐契约。
+// 整个 conversation.view 插槽被错误边界摘掉时的兜底。这里由插件自己补齐契约。
 const MARKDOWN_LABELS = {
   code: {
     copyLabel: '复制',

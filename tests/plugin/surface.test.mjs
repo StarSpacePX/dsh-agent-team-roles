@@ -6,7 +6,7 @@ import { apply } from '../../lib/index.js'
 import { createHarness, settle, call, withPlugin } from '../support/harness.mjs'
 import os from 'node:os'
 import path from 'node:path'
-import { STATE_URL, COMMAND_URL, TEAM_LOG_URL, BASH_DISABLED_ON, expectedBashDisabled } from '../support/plugin-fixtures.mjs'
+import { STATE_URL, COMMAND_URL, BASH_DISABLED_ON, expectedBashDisabled } from '../support/plugin-fixtures.mjs'
 
 test('apply registers one preset per stored role', async () => {
   await withPlugin(
@@ -26,10 +26,10 @@ test('apply registers one preset per stored role', async () => {
       assert.equal(state.json.registered.includes('team-architect'), true)
       assert.ok(state.json.roles[0].rows.length > 10)
 
-// 正好是客户端要取的那三条精确路由，不多不少。
+// 正好是客户端要取的那两条精确路由，不多不少。
       assert.deepEqual(
         [...routes.keys()].sort(),
-        [`exact ${COMMAND_URL}`, `exact ${STATE_URL}`, `exact ${TEAM_LOG_URL}`],
+        [`exact ${COMMAND_URL}`, `exact ${STATE_URL}`],
       )
     },
     {

@@ -1,33 +1,6 @@
 // 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // 能力表行抽取与过滤（MCP / 技能 / 工具）。
 
-const chatTab = {
-  disposer: null,
-  hidden: null,
-/** 当前会话住在监察员工作区里 → 这个「群聊」页签让位给 dsh-arbiter-roles 的「监察群」
- * 普通会话看群聊、监察会话看监察群，两边不叠。这个值由 entry.js 按会话 cwd 算出，
- * 与用户 hideChatTab 开关是两回事，任一为真就不挂。 */
-  outOfScope: false,
-  stopped: true,
-  mount: null,
-  unmount: null,
-  apply() {
-    if (this.hidden === true || this.outOfScope === true) this.unmount();
-    else this.mount();
-  },
-  setHidden(hidden) {
-    if (this.hidden === hidden) return;
-    this.hidden = hidden;
-    this.apply();
-  },
-  setOutOfScope(value) {
-    const next = value === true;
-    if (this.outOfScope === next) return;
-    this.outOfScope = next;
-    this.apply();
-  },
-};
-
 /** 能力表：行按分类分组，每组可折叠（标准模板 32 行 8 组，技能 / 工具 / 委派各自长到能盖住别的）。
  * 故意没有逐行配置编辑器：用户只要开关。set-override 仍携带行的 config 供 AGENTS.md 使用。 */
 const needleMatches = (needle, text) => {
@@ -121,4 +94,4 @@ function groupTools(entries) {
   return { groups, loose };
 }
 
-export { chatTab, needleMatches, mcpEntries, skillEntries, toolEntries, filterEntries, TOOL_GROUP_MIN, toolPrefix, groupTools };
+export { needleMatches, mcpEntries, skillEntries, toolEntries, filterEntries, TOOL_GROUP_MIN, toolPrefix, groupTools };
