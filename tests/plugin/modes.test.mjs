@@ -90,7 +90,8 @@ test('a live preset composes a role from its declaration, `!!js` gates included'
         )
         // — Loader 给的 `{ __jsExpr }` 门由 `resolveGate` 解开；期望值是
         // 常量表，不是把同一个 platform 表达式再抄一遍。
-        assert.equal(plugins[1].disabled, expectedBashDisabled())
+        // 组合行在不该禁用时会删掉 `disabled` 键，缺省按 false 算。
+        assert.equal(plugins[1].disabled ?? false, expectedBashDisabled())
 
         const role = (await call(routes, STATE_URL)).json.roles.find((item) => item.id === 'team-live')
         assert.equal(role.mode, 'house-style')

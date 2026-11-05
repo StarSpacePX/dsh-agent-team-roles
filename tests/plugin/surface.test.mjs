@@ -19,7 +19,12 @@ test('apply registers one preset per stored role', async () => {
       const definition = registered[0].definition
       assert.equal(definition.name, '架构师')
 // 期望值来自 BASH_DISABLED_ON 这张表，不是实现里的 platform 表达式。
-      assert.equal(definition.plugins.find((row) => row.id === 'tool-bash').disabled, expectedBashDisabled())
+      // 组合行在不该禁用时会删掉 `disabled` 键，所以缺省按 false 算——断言按语义比较，
+      // 而不是要求「键必须存在且为 false」，否则只有 Windows 跑得过。
+      assert.equal(
+        definition.plugins.find((row) => row.id === 'tool-bash').disabled ?? false,
+        expectedBashDisabled(),
+      )
 
       const state = await call(routes, STATE_URL)
       assert.equal(state.status, 200)
