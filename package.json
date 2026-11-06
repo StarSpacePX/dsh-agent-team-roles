@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-team-roles",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "在 Web GUI 里可视化管理 agent team 的角色：每个角色是一份独立 preset，开关它自己的能力行（工具 / 技能 / MCP / 分组 / loop / AGENTS.md），只引用现有行、不新增行、不改任何现有文件。",
   "license": "MIT",
   "author": "StarSpacePX",
