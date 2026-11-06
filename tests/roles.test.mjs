@@ -383,8 +383,41 @@ test('buildDefinition produces a preset the registry will accept', async () => {
   assert.equal(definition.plugins.find((row) => row.id === 'tool-bash').disabled, false)
 })
 
-test('buildDefinitions skips damaged roles instead of throwing', async () => {
+test('a role that specifies a model gains an agent-default-model row', async () => {
   const template = await loadTemplate()
+  const role = createRole('team-architect', '架构师', template)
+  role.model = { provider: 'deepseek-official', model: 'deepseek-flash', reasoningEffort: 'high' }
+
+  const definition = buildDefinition(role, template, 'win32')
+  const row = definition.plugins.find((entry) => entry.id === 'agent-default-model')
+  assert.deepEqual(row, {
+    id: 'agent-default-model',
+    name: '@deepseek-ai/dsh-agent-default-model',
+    config: { provider: 'deepseek-official', model: 'deepseek-flash', reasoningEffort: 'high' },
+  })
+})
+
+test('a role that follows the template gains no model row', async () => {
+  const template = await loadTemplate()
+  const role = createRole('team-architect', '架构师', template)
+  const definition = buildDefinition(role, template, 'win32')
+  assert.equal(definition.plugins.find((entry) => entry.id === 'agent-default-model'), undefined)
+})
+
+test('normalizeRole keeps only the three model strings and defaults them empty', () => {
+  const base = { id: 'team-a', name: 'A' }
+  assert.deepEqual(normalizeRole(base).model, { provider: '', model: '', reasoningEffort: '' })
+  assert.deepEqual(
+    normalizeRole({ ...base, model: { provider: ' p ', model: ' m ', reasoningEffort: ' low ' } }).model,
+    { provider: 'p', model: 'm', reasoningEffort: 'low' },
+  )
+  assert.deepEqual(
+    normalizeRole({ ...base, model: { provider: 12, model: null, reasoningEffort: {} } }).model,
+    { provider: '', model: '', reasoningEffort: '' },
+  )
+})
+
+test('buildDefinitions skips damaged roles instead of throwing', async () => {  const template = await loadTemplate()
   const { definitions, skipped } = buildDefinitions(
     [createRole('team-a', 'A', template), { id: 'broken', invalid: true }],
     template,

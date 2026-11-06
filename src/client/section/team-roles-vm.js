@@ -84,6 +84,19 @@ function buildTeamRolesVm(core, drafts, switches) {
       writeDraft(selectedId, { config: { 'tool-subagent': undefined } });
     });
   };
+// 模型的三个字段一起提交：勾掉「指定」= 三个都空，回到跟随模板。
+  const onModelSet = (model) => {
+    const key = 'model';
+    if (pending.has(key)) return undefined;
+    markPending(key, true);
+    return run({
+      action: 'set-model',
+      id: selectedId,
+      provider: String(model?.provider ?? ''),
+      model: String(model?.model ?? ''),
+      reasoningEffort: String(model?.reasoningEffort ?? ''),
+    }).finally(() => markPending(key, false));
+  };
 // 「全开 / 全关」只有分组标题行（以及 MCP 标题行）那个复选框一个入口。
 // 整批只发一条请求：commitSwitches 记进队列，120ms 后合成一条 set-switches，
 // 宿主侧一次写盘、一次重建 —— 不是每行一条 set-override。
@@ -161,6 +174,7 @@ function buildTeamRolesVm(core, drafts, switches) {
     onContextToggle,
     onMcpBulk,
     onMcpToggle,
+    onModelSet,
     onToggle,
     onToolBulk,
     onToolGroup,

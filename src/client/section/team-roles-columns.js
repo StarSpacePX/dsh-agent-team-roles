@@ -8,6 +8,7 @@ import { ContextPanel } from './../panels/context.js';
 import { GroupedTable } from './../panels/grouped-table.js';
 import { McpPanel } from './../panels/mcp.js';
 import { ModePanel } from './../panels/mode.js';
+import { ModelPanel } from './../panels/model.js';
 import { PluginsPanel } from './../panels/plugins.js';
 import { SkillsPanel } from './../panels/skills.js';
 import { WorkdirPanel } from './../panels/workdir.js';
@@ -15,7 +16,7 @@ import { h } from './../react.js';
 import { styles } from './../styles.js';
 
 function TeamRolesColumns(vm) {
-  const { brokenById, busy, clearDirty, commitSkills, deferredIds, description, displayRole, editDraft, idDraft, idDraftChanged, idDraftInvalid, idDraftTaken, name, onBulk, onContextToggle, onMcpBulk, onMcpToggle, onToggle, onToolBulk, onToolGroup, onToolToggle, order, pending, registeredIds, run, selectRole, selected, selectedId, selectedIdDraft, selectedMemberName, setDescription, setIdDraft, setName, setOrder, setSelectedId, newRoleIdPrefix, state } = vm;
+  const { brokenById, busy, clearDirty, commitSkills, deferredIds, description, displayRole, editDraft, idDraft, idDraftChanged, idDraftInvalid, idDraftTaken, name, onBulk, onContextToggle, onMcpBulk, onMcpToggle, onModelSet, onToggle, onToolBulk, onToolGroup, onToolToggle, order, pending, registeredIds, run, selectRole, selected, selectedId, selectedIdDraft, selectedMemberName, setDescription, setIdDraft, setName, setOrder, setSelectedId, newRoleIdPrefix, state } = vm;
     return h(
       'div',
       { style: styles.columns },
@@ -212,6 +213,13 @@ function TeamRolesColumns(vm) {
               role: displayRole,
               busy: pending.has('context:tool-subagent'),
               onSet: onContextToggle,
+            }),
+// 这个角色跑在哪个模型上：勾上才在预设里加 agent-default-model 行，不勾跟随模板。
+            h(ModelPanel, {
+              role: displayRole,
+              catalog: state.models,
+              busy: pending.has('model'),
+              onSet: onModelSet,
             }),
 // 技能跟在 MCP 后面，同属能力行的子块（两者同一层，不缩进）。
 // MCP 列表作为 children 传进表格，渲染在能力行里、过滤行下面。

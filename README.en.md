@@ -19,6 +19,7 @@ extends public interfaces; not a byte of dsh itself is patched.
 | Switch-based settings | Filter, "only rows this role changed", whole-category tri-state switches, collapsible groups; one gesture becomes one batched request |
 | Reference, never invent | A role's capability rows come from the presets the deployment has **right now**; a role only flips switches on existing rows |
 | Skills per role | Skill rows and their order are stored per role and assembled on the host side once |
+| Model per role | Each role can set its own provider / model / reasoning effort; leave empty to follow the template |
 | MCP switches | Off means that role's agent cannot see that MCP server's tools (a visibility filter, not another connection) |
 | Team switch and member binding | `set-team` starts the team runtime; `bindMembers` binds a new member to the role of the same name |
 | `@member` dispatch | The Lead sees every member; `@name` delivers straight to that member; task-board changes wake the Lead |
