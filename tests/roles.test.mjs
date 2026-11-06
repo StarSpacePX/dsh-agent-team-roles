@@ -383,24 +383,14 @@ test('buildDefinition produces a preset the registry will accept', async () => {
   assert.equal(definition.plugins.find((row) => row.id === 'tool-bash').disabled, false)
 })
 
-test('a role that specifies a model gains an agent-default-model row', async () => {
+test('a role model never becomes a preset row', async () => {
   const template = await loadTemplate()
   const role = createRole('team-architect', '架构师', template)
   role.model = { provider: 'deepseek-official', model: 'deepseek-flash', reasoningEffort: 'high' }
 
   const definition = buildDefinition(role, template, 'win32')
-  const row = definition.plugins.find((entry) => entry.id === 'agent-default-model')
-  assert.deepEqual(row, {
-    id: 'agent-default-model',
-    name: '@deepseek-ai/dsh-agent-default-model',
-    config: { provider: 'deepseek-official', model: 'deepseek-flash', reasoningEffort: 'high' },
-  })
-})
-
-test('a role that follows the template gains no model row', async () => {
-  const template = await loadTemplate()
-  const role = createRole('team-architect', '架构师', template)
-  const definition = buildDefinition(role, template, 'win32')
+  // agent-default-model 注册的是单例服务，预设里再挂一行会让整个预设挂载失败；
+  // 角色的模型只能在成员被创建时由 agent 作用域的 selection 装上。
   assert.equal(definition.plugins.find((entry) => entry.id === 'agent-default-model'), undefined)
 })
 
