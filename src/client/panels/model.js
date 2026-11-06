@@ -10,9 +10,10 @@ function ModelPanel({ role, catalog, busy, onSet }) {
   const model = role.model ?? { provider: '', model: '', reasoningEffort: '' };
   const specified = String(model.provider ?? '') !== '' && String(model.model ?? '') !== '';
   const providers = Array.isArray(catalog?.providers) ? catalog.providers : [];
-  const efforts = Array.isArray(catalog?.reasoningEfforts) ? catalog.reasoningEfforts : [];
   const current = providers.find((entry) => entry.id === model.provider);
   const models = current === undefined ? [] : current.models;
+  const currentModel = models.find((entry) => entry.id === model.model);
+  const efforts = currentModel === undefined ? [] : currentModel.efforts;
   const catalogError = typeof catalog?.error === 'string' ? catalog.error : '';
 
   return h(
@@ -50,11 +51,8 @@ function ModelPanel({ role, catalog, busy, onSet }) {
           // 否则「指定」这个状态建不起来（空 provider + 空 model 会被宿主判为跟随模板）。
           const first = providers[0];
           if (first === undefined) return;
-          onSet({
-            provider: first.id,
-            model: Array.isArray(first.models) && first.models.length > 0 ? first.models[0] : '',
-            reasoningEffort: '',
-          });
+          const firstModel = Array.isArray(first.models) && first.models.length > 0 ? first.models[0].id : '';
+          onSet({ provider: first.id, model: firstModel, reasoningEffort: '' });
         },
       }),
       h('span', null, '指定模型（不勾 = 跟随模板）'),
@@ -70,7 +68,11 @@ function ModelPanel({ role, catalog, busy, onSet }) {
               value: model.provider,
               disabled: busy,
               title: 'provider',
-              onChange: (event) => onSet({ ...model, provider: event.target.value }),
+              onChange: (event) => {
+                const next = providers.find((entry) => entry.id === event.target.value);
+                const nextModel = next !== undefined && next.models.length > 0 ? next.models[0].id : '';
+                onSet({ provider: event.target.value, model: nextModel, reasoningEffort: '' });
+              },
             },
             providers.length === 0
               ? h('option', { key: model.provider, value: model.provider }, model.provider)
@@ -85,11 +87,13 @@ function ModelPanel({ role, catalog, busy, onSet }) {
               value: model.model,
               disabled: busy,
               title: 'model',
-              onChange: (event) => onSet({ ...model, model: event.target.value }),
+              onChange: (event) => onSet({ ...model, model: event.target.value, reasoningEffort: '' }),
             },
             models.length === 0
               ? h('option', { key: model.model, value: model.model }, model.model)
-              : models.map((name) => h('option', { key: name, value: name }, name)),
+              : models.map((entry) =>
+                  h('option', { key: entry.id, value: entry.id }, entry.label ?? entry.id),
+                ),
           ),
           h(
             'select',
@@ -101,7 +105,7 @@ function ModelPanel({ role, catalog, busy, onSet }) {
               onChange: (event) => onSet({ ...model, reasoningEffort: event.target.value }),
             },
             h('option', { key: '', value: '' }, '推理强度：适配器默认'),
-            efforts.map((name) => h('option', { key: name, value: name }, name)),
+            efforts.map((effort) => h('option', { key: effort.id, value: effort.id }, effort.name)),
           ),
         )
       : null,
