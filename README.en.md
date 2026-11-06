@@ -11,6 +11,10 @@ Give every member of a dsh agent team its own **role**: each role is a separate,
 preset, plus two session tabs — "Roles" for settings and "Chat" for the team message flow. It only
 extends public interfaces; not a byte of dsh itself is patched.
 
+![Chat tab: member states, the role dependency graph, the team message flow](https://raw.githubusercontent.com/StarSpacePX/dsh-agent-team-roles/main/docs/screenshots/chat.png)
+
+![Role settings: capability switches and a per-role model](https://raw.githubusercontent.com/StarSpacePX/dsh-agent-team-roles/main/docs/screenshots/roles.png)
+
 ## What it does
 
 | Capability | In one line |

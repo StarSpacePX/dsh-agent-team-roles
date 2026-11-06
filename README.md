@@ -10,6 +10,10 @@ kind: "package-reference"
 给 dsh 的 agent team 的每个成员定义一个**角色**：每个角色是一枚独立可选的 agent preset，
 再加两个会话页签：「角色」配置页与「群聊」。只延伸官方接口，不改 dsh 一个字节。
 
+![会话页签「群聊」：成员状态、角色依赖图、全员消息流](https://raw.githubusercontent.com/StarSpacePX/dsh-agent-team-roles/main/docs/screenshots/chat.png)
+
+![角色配置页：能力行开关、按角色指定模型](https://raw.githubusercontent.com/StarSpacePX/dsh-agent-team-roles/main/docs/screenshots/roles.png)
+
 ## 它能做什么
 
 | 能力 | 一句话 |
