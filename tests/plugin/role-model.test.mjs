@@ -11,15 +11,15 @@ function fakeHost({ supports = true } = {}) {
   const warned = []
   const host = {
     logger: { info: () => {}, warn: (line) => warned.push(String(line)), error: () => {} },
-    ctx: {
-      llm: {
-        async resolveCallConfig(config) {
-          return {
-            ...config,
-            ...(config.reasoningEffort === undefined ? {} : { reasoningEffort: config.reasoningEffort }),
-          }
-        },
+    llm: {
+      async resolveCallConfig(config) {
+        return {
+          ...config,
+          ...(config.reasoningEffort === undefined ? {} : { reasoningEffort: config.reasoningEffort }),
+        }
       },
+    },
+    ctx: {
       get(name) {
         if (name !== 'sessionController') return undefined
         if (!supports) return {}
