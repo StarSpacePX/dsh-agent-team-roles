@@ -1,19 +1,7 @@
 // 客户端真源码（lib/client.js 是构建产物，勿手改）。
-// 群聊 tab：事件折叠（时钟 / 正文 / 去重合并）。
+// 群聊 tab：把窗口里的转达消息折成消息行（时钟 / 正文）。
 
 //#region 群聊 tab（R7.5 / R7.7 / R7.8）
-/**
- * The shipped Agent Teams UI states its own limitation in its README
- * 「**没有 mailbox timeline**——投影视图只承载 roster 与任务；不显示 peer 消息」。
- *
- * The messages are not actually invisible — they are durable Session events of
- * the **Lead Session**: `team/message/queued` carries the whole
- * `TeamMessageSnapshot` (sender, target, content) and `team/message/delivered`
- * carries the ack, both with the session's own `seq` and `time`. A browser
- * plugin can read that window, so this tab renders exactly what the log says.
- * Nothing here is inferred, synthesised or faked: when the deployment has no
- * Agent Teams activity, the tab says so instead of inventing a conversation.
- */
 
 function formatClock(time) {
   if (typeof time !== 'number' || Number.isFinite(time) !== true) return '';
@@ -34,122 +22,67 @@ function blockText(content) {
   return parts.join('\n');
 }
 
-/** 把一段原始会话事件窗口折成团队时间线。纯函数：不读 window 之外的东西，也不改它的条目。
- * team/member 与 team/task 是整值记录，按 id 取最新即赢；
- * team/message/queued 是持久入队、delivered 只带 id，所以送达是第二遍。 */
-function foldTeamEvents(window) {
-  const members = new Map();
-  const tasks = new Map();
-  const messages = [];
-  const byId = new Map();
-  const delivered = new Set();
-  let teamId = null;
+/** 转达消息：宿主不再写 `team/message/*`，消息改成投递时的一条通用事件
+ * `agent/inbox/spliced`，落在**收件人**那个会话的日志里。
+ *
+ * 群聊页因此要同时看「本会话 + 同团队的其它会话」的窗口：一条 Lead→成员的消息只在
+ * 成员会话里，只看本会话会漏掉一半。这个函数把**一个窗口**里属于 `receiverId` 的
+ * 转达消息折成消息行；调用方把多个窗口的结果拼起来。 */
+const RELAY_EVENT_TYPE = 'agent/inbox/spliced';
+/** 运行时给转达消息加的抬头（`Team message from devtest:`），进群聊前剥掉。 */
+const SPEAKER_PREFIX = /^Team message from [^:\n]+:\s*$/;
 
+function relayRowsFromWindow(window, receiverId) {
+  const rows = [];
   const entries =
     window !== null && window !== undefined && Array.isArray(window.entries) ? window.entries : [];
-
   for (const entry of entries) {
     if (entry === null || typeof entry !== 'object' || entry.type !== 'event') continue;
     const event = entry.event;
-    if (event === null || typeof event !== 'object') continue;
+    if (event === null || typeof event !== 'object' || event.type !== RELAY_EVENT_TYPE) continue;
     const data = event.data;
-    if (data === null || typeof data !== 'object') continue;
-    if (typeof data.teamId === 'string') teamId = data.teamId;
-
-    if (event.type === 'team/member' && data.member !== null && typeof data.member === 'object') {
-      members.set(data.member.id, data.member);
-    } else if (event.type === 'team/task' && data.task !== null && typeof data.task === 'object') {
-      tasks.set(data.task.id, data.task);
-    } else if (
-      event.type === 'team/message/queued' &&
-      data.message !== null &&
-      typeof data.message === 'object'
-    ) {
-      const message = data.message;
-      const existing = byId.get(message.id);
-      if (existing === undefined) {
-        const row = { message, seq: event.seq, time: event.time };
-        byId.set(message.id, row);
-        messages.push(row);
-      } else {
-        existing.seq = event.seq;
-        existing.time = event.time;
+    if (data === null || typeof data !== 'object' || Array.isArray(data.inserted) !== true) continue;
+    for (const [index, inserted] of data.inserted.entries()) {
+      if (inserted === null || typeof inserted !== 'object') continue;
+      const source = inserted.source;
+      if (source === null || typeof source !== 'object' || source.kind !== 'agent-message') continue;
+      const senderId = typeof source.senderSessionId === 'string' ? source.senderSessionId : '';
+      const texts = [];
+      for (const block of Array.isArray(inserted.content) ? inserted.content : []) {
+        if (block !== null && typeof block === 'object' && typeof block.text === 'string') texts.push(block.text);
       }
-    } else if (event.type === 'team/message/delivered' && typeof data.messageId === 'string') {
-      delivered.add(data.messageId);
+      while (texts.length > 0 && SPEAKER_PREFIX.test(texts[0].trim()) === true) texts.shift();
+      const body = texts.join('\n');
+      if (body.trim() === '') continue;
+// 运行时这里不给持久消息 id，身份只能用唯一稳定的元组：发送者 + 这次接收事件。
+      rows.push({
+        message: {
+          id: `relay:${senderId}:${String(event.seq)}:${index}`,
+          senderId,
+          targetId: receiverId,
+          content: [{ type: 'text', text: body }],
+        },
+        seq: Number(event.seq),
+        time: Number(event.time),
+        delivered: true,
+      });
     }
   }
-
-  for (const row of messages) row.delivered = delivered.has(row.message.id);
-
-  return {
-    members: [...members.values()],
-    tasks: [...tasks.values()].filter((task) => task.status !== 'deleted'),
-    messages,
-    teamId,
-    hasMore: window !== null && window !== undefined && window.hasMore === true,
-  };
+  return rows;
 }
 
-/** 把宿主侧的投影并进本地折叠的窗口。
- * 两者描述同一份日志的两个视角：投影完整但最多旧 TEAM_LOG_POLL_MS，窗口实时但只有尾巴。
- * 按 id 合并而不是「谁赢」，因为爆发期最新事件只存在于窗口里、最早的只存在于投影里。 */
-function mergeTeamLog(folded, projection) {
-  if (projection === null || projection === undefined) return folded
-
-  const members = new Map();
-  for (const member of projection.members ?? []) {
-    if (member !== null && typeof member === 'object') members.set(String(member.id), member);
-  }
-  for (const member of folded.members) members.set(String(member.id), member);
-
-  const tasks = new Map();
-  for (const task of projection.tasks ?? []) {
-    if (task !== null && typeof task === 'object') tasks.set(String(task.id), task);
-  }
-  for (const task of folded.tasks) tasks.set(String(task.id), task);
-
+/** 把多个团队的窗口折成一份有序的转达消息列表。
+ * 行来自不同会话的日志，`seq` 是各自会话的计数器、不可比，所以按 `time` 排序。 */
+function foldRelayMessages(sources) {
   const byId = new Map();
-  const keep = (row) => ({
-    message: row.message,
-    seq: row.seq ?? null,
-    time: row.time ?? null,
-    delivered: row.delivered === true,
-  });
-  for (const row of projection.messages ?? []) {
-    if (row !== null && typeof row === 'object' && row.message !== null && row.message !== undefined) {
-      byId.set(String(row.message.id), keep(row));
+  for (const source of Array.isArray(sources) ? sources : []) {
+    if (source === null || typeof source !== 'object') continue;
+    for (const row of relayRowsFromWindow(source.window, source.receiverId)) {
+      if (byId.has(row.message.id) !== true) byId.set(row.message.id, row);
     }
   }
-  for (const row of folded.messages) {
-    const id = String(row.message.id);
-    const existing = byId.get(id);
-    if (existing === undefined) {
-      byId.set(id, keep(row));
-      continue;
-    }
-    const newer = (row.seq ?? 0) >= (existing.seq ?? 0) ? row : existing;
-    byId.set(id, {
-      message: newer.message,
-      seq: newer.seq ?? null,
-      time: newer.time ?? null,
-      delivered: row.delivered === true || existing.delivered === true,
-    });
-  }
-
-  const messages = [...byId.values()].sort((left, right) => (left.seq ?? 0) - (right.seq ?? 0));
-  const teamId = folded.teamId ?? (typeof projection.teamId === 'string' ? projection.teamId : null);
-  return {
-    members: [...members.values()],
-    tasks: [...tasks.values()].filter((task) => task.status !== 'deleted'),
-    messages,
-    teamId,
-    hasMore: false,
-    projected: true,
-  };
+  return [...byId.values()].sort((left, right) => (left.time ?? 0) - (right.time ?? 0));
 }
 
-/** 轮询某个会话的宿主投影。宿主答不上就返回 null，调用方继续用本地窗口；
- * 页签隐藏时停止轮询 —— 后台页签没人看结果。 */
 
-export { formatClock, blockText, foldTeamEvents, mergeTeamLog };
+export { formatClock, blockText, foldRelayMessages };

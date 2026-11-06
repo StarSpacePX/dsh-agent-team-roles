@@ -5,8 +5,8 @@ import { React, h } from './../react.js';
 import { chatStyles } from './../styles.js';
 import { chat, withAlpha } from './../tokens.js';
 import { useRoleColors } from './colors.js';
-import { foldTeamEvents, mergeTeamLog } from './fold.js';
-import { foldPairs, useEventWindow, useTeamProjection } from './hooks.js';
+import { foldRelayMessages } from './fold.js';
+import { foldPairs, useEventWindow, useRelayWindows, useTeamProjection } from './hooks.js';
 import { useOrder } from './order.js';
 import { MARKDOWN_CSS, resetHostScroll } from './markdown-style.js';
 import { TeamChatEmpty } from './empty-view.js';
@@ -14,11 +14,41 @@ import { TeamChatStats } from './stats-row.js';
 import { TeamChatGraph } from './graph-view.js';
 import { TeamChatMessages } from './message-list.js';
 function TeamChatView(props) {  const window = useEventWindow(props.subscribe, props.getWindow);
-  const local = React.useMemo(() => foldTeamEvents(window), [window]);
-// 宿主对这条会话日志的投影：到得稍晚，也可能永远不到（运行时关着 / 会话不活跃），
-// 那时 mergeTeamLog 原样交回本地窗口折出来的结果。
+// 宿主账本：名册、任务板、磁盘上的消息，页面打开时读一次（实时靠各会话的 eventSource 推送）。
   const projection = useTeamProjection(props.sessionId);
-  const folded = React.useMemo(() => mergeTeamLog(local, projection), [local, projection]);
+// 一条转达消息只落在**收件人**的会话日志里，所以这一页要同时看「本会话 + 同团队的其它会话」
+// 的窗口：只看本会话会漏掉反方向那一半。
+  const pageIds = React.useMemo(() => {
+    const ids = new Set([String(props.sessionId)]);
+    if (projection !== null && typeof projection === 'object' && Array.isArray(projection.members)) {
+      for (const member of projection.members) if (member?.id !== undefined) ids.add(String(member.id));
+    }
+    if (projection !== null && typeof projection === 'object' && typeof projection.teamId === 'string') {
+      ids.add(projection.teamId);
+    }
+    return [...ids];
+  }, [props.sessionId, projection]);
+  const pageKey = pageIds.join(',');
+  const partners = React.useMemo(
+    () => (typeof props.withPeers === 'function' ? props.withPeers(pageIds, props.sessionId) : []),
+    [props.withPeers, pageKey],
+  );
+  const partnerWindows = useRelayWindows(partners, pageKey);
+// 实时：窗口里出现的新消息（宿主一追加就推），和打开页面时读到的历史按 id 合并。
+  const page = React.useMemo(() => {
+    const base =
+      projection !== null && typeof projection === 'object'
+        ? projection
+        : { teamId: props.sessionId, members: [], tasks: [], messages: [] };
+    const live = foldRelayMessages([{ receiverId: props.sessionId, window }, ...partnerWindows]);
+    const byId = new Map();
+    for (const row of Array.isArray(base.messages) ? base.messages : []) byId.set(row.message.id, row);
+    for (const row of live) byId.set(row.message.id, row);
+    const messages = [...byId.values()].sort((left, right) => (left.time ?? 0) - (right.time ?? 0));
+    return { ...base, messages, hasMore: false };
+  }, [projection, window, partnerWindows, props.sessionId]);
+// 老 UI 一直读 folded，这里让它指向同一份页数据；hasMore 恒 false，不再有「往前翻」的概念。
+  const folded = page;
   const [busy, setBusy] = React.useState(false);
   const [expanded, setExpanded] = React.useState(() => new Set());
   const [range, setRange] = React.useState(null);
@@ -79,22 +109,38 @@ function TeamChatView(props) {  const window = useEventWindow(props.subscribe, p
   const selectStyle = (key) =>
     focusKey === key ? { ...chatStyles.select, borderColor: chat.focusRing } : chatStyles.select;
 
+// 本地窗口折出来的转达消息没有名字（宿主那边才查名册），进渲染前按 nameById 补上，
+// 否则消息卡片的发送者胶囊是空的。
+  const messages = React.useMemo(
+    () =>
+      folded.messages.map((row) => {
+        if (typeof row.message.senderName === 'string') return row;
+        const senderId = String(row.message.senderId);
+        return {
+          ...row,
+          message: { ...row.message, senderName: nameById.get(senderId) ?? senderId },
+        };
+      }),
+    [folded, nameById],
+  );
+
 // 默认周期 = 第一个 Lead @ → 最新一条消息，这样最后一条 @ 之后才到的成员回复不会被截掉。
 // 两个 @ 选择器只能点名 Lead @ 点，「最新」因此是它自己的空选项值。
-  const leadRows = folded.messages.filter((row) => leadIds.has(String(row.message.senderId)));
-  const latest = folded.messages[folded.messages.length - 1];
+  const leadRows = messages.filter((row) => leadIds.has(String(row.message.senderId)));
+  const latest = messages[messages.length - 1];
   const boundRow = (messageId, fallback) =>
     messageId === undefined || messageId === null || messageId === ''
       ? fallback
       : leadRows.find((row) => row.message.id === messageId) ?? fallback;
   const cycleStart = boundRow(range === null ? undefined : range.startId, leadRows[0]);
   const cycleEnd = boundRow(range === null ? undefined : range.endId, latest ?? leadRows[leadRows.length - 1]);
-  const startSeq = cycleStart === undefined ? Number.NEGATIVE_INFINITY : cycleStart.seq;
-  const endSeq = cycleEnd === undefined ? Number.POSITIVE_INFINITY : cycleEnd.seq;
+// 范围用 time 不用 seq：转达消息来自不同会话，seq 是各自会话的计数器，不可比。
+  const startAt = cycleStart === undefined ? Number.NEGATIVE_INFINITY : cycleStart.time;
+  const endAt = cycleEnd === undefined ? Number.POSITIVE_INFINITY : cycleEnd.time;
 // 两个 @ 选择器互相独立，「起点晚于终点」可达；那一段确实为空，要明说，
 // 而不是渲染成看起来整个会话都没消息的空白页签。
-  const inverted = Number.isFinite(startSeq) && Number.isFinite(endSeq) && startSeq > endSeq;
-  const shown = inverted ? [] : folded.messages.filter((row) => row.seq >= startSeq && row.seq <= endSeq);
+  const inverted = Number.isFinite(startAt) && Number.isFinite(endAt) && startAt > endAt;
+  const shown = inverted ? [] : messages.filter((row) => row.time >= startAt && row.time <= endAt);
 // 只改渲染顺序：统计、@ 配对、翻页仍按时间正序处理 shown。
   const newestFirst = order !== 'asc';
   const ordered = newestFirst ? [...shown].reverse() : shown;
@@ -159,10 +205,12 @@ function TeamChatView(props) {  const window = useEventWindow(props.subscribe, p
     if (node === null || node === undefined) return;
     resetHostScroll(node);
   }, []);
+// 首帧数据还没到（账本是异步读的）时这一页先走空态，但根节点同样要带 ref：
+// 「打开就在最上面」的 layout effect 只跑一次，挂载时拿不到节点就永远不生效。
   if (folded.messages.length === 0 && folded.members.length === 0) {
 // 窗口被截断时的空页签不能声称这个会话从没有过团队：要说清记录在哪，并提供往前翻。
     const truncated = canPage === true && folded.hasMore === true;
-    return h(TeamChatEmpty, { p: { truncated, scan, runScan } });
+    return h('div', { ref: rootRef, style: chatStyles.root }, h(TeamChatEmpty, { p: { truncated, scan, runScan } }));
   }
 
 // 算出来的值打包成 p 交给四段渲染模块，各模块内部再解构回原名；搬过去的渲染代码不改。

@@ -1,7 +1,7 @@
 // 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // 群聊 tab：投影与事件窗口 hook。
 
-import { TEAM_LOG_POLL_MS, TEAM_LOG_URL } from './../constants.js';
+import { TEAM_LOG_URL } from './../constants.js';
 import { React } from './../react.js';
 import { blockText } from './fold.js';
 
@@ -9,8 +9,8 @@ function useTeamProjection(sessionId) {
   const [projection, setProjection] = React.useState(null);
   React.useEffect(() => {
     let alive = true;
-    let timer = null;
-    const tick = async () => {
+    setProjection(null);
+    const run = async () => {
       if (typeof sessionId !== 'string' || sessionId.length === 0) return;
       let next = null;
       try {
@@ -28,20 +28,9 @@ function useTeamProjection(sessionId) {
       }
       if (alive === true && next !== null) setProjection(next);
     };
-    const schedule = () => {
-      timer = setTimeout(() => {
-        const run = async () => {
-          if (typeof document === 'undefined' || document.hidden !== true) await tick();
-          if (alive === true) schedule();
-        };
-        void run();
-      }, TEAM_LOG_POLL_MS);
-    };
-    void tick();
-    schedule();
+    void run();
     return () => {
       alive = false;
-      if (timer !== null) clearTimeout(timer);
     };
   }, [sessionId]);
   return projection;
@@ -95,4 +84,37 @@ function useEventWindow(subscribe, getWindow) {
   return window;
 }
 
-export { useTeamProjection, shortText, foldPairs, useEventWindow };
+/** 订阅同团队的其它会话。一条转达消息只落在**收件人**的会话里，所以这一页要同时
+ * 看「本会话 + 同团队的其它会话」——Lead→成员在成员的日志里，成员→Lead 在 Lead 的
+ * 日志里，只看本会话会漏掉一半。
+ *
+ * @param {{ id: string, source: object }[]} partners 宿主页给的表（已排掉本会话）
+ * @param {string} key partners 的稳定指纹：id 集合不变就不重订阅
+ * @returns {{ receiverId: string, window: object }[]} */
+function useRelayWindows(partners, key) {
+  const snapshot = React.useCallback(
+    () =>
+      partners.map((partner) => ({
+        receiverId: partner.id,
+        window: partner.source.getSnapshot(),
+      })),
+    [partners],
+  );
+  const [windows, setWindows] = React.useState(() => snapshot());
+  React.useEffect(() => {
+    const sync = () => setWindows(snapshot());
+    sync();
+    const offs = [];
+    for (const partner of partners) {
+      if (partner !== null && typeof partner === 'object' && typeof partner.source?.subscribe === 'function') {
+        offs.push(partner.source.subscribe(sync));
+      }
+    }
+    return () => {
+      for (const off of offs) if (typeof off === 'function') off();
+    };
+  }, [key]);
+  return windows;
+}
+
+export { useTeamProjection, shortText, foldPairs, useEventWindow, useRelayWindows };

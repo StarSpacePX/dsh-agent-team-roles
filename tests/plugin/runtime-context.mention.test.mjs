@@ -141,10 +141,10 @@ test('the @ source claims on the space and leaves file references alone', async 
   // 认领 token 必须带尾随空格：就是这一下把输入切进 claimed 态。
   assert.match(source, /token:\s*`\$\{shown\} `/)
 
-  // 正文只走一条 team-send；名册优先读共享投影，事件窗只作兜底。
+  // 正文只走一条 team-send；名册读共享投影（不再折会话事件窗）。
   assert.match(source, /action:\s*'team-send'/)
   assert.match(source, /projectionsBySession/)
-  assert.match(source, /foldTeamEvents/)
+  assert.equal(/foldTeamEvents/.test(source), false)
 })
 
 test('the browser half instantiates under the page module loader', async () => {

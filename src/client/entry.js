@@ -1,7 +1,6 @@
 // 客户端真正源码（lib/client.js 是 node tools/build-client.mjs 的产物，勿手改）。
 // 插件入口：apply 与 name/inject。
 
-import { foldTeamEvents } from './chat/fold.js';
 import { TeamChatView } from './chat/view.js';
 import { chatTab } from './entries.js';
 import { command, fetchArbiterWorkspace, fetchState } from './net.js';
@@ -43,14 +42,28 @@ function apply(ctx) {
               sessionId,
               subscribe: (listener) => source.subscribe(listener),
               getWindow: () => source.getSnapshot(),
-              loadOlder:
-                typeof session.loadOlder === 'function'
-                  ? async () => {
-                      const before = source.getSnapshot();
-                      await session.loadOlder();
-                      return source.getSnapshot() !== before;
+// 同团队其它会话的 eventSource：一条转达消息只落在收件人的会话里，这一页要把两边的
+// 窗口都订阅上才看得到完整的收发。
+              withPeers: (ids, selfId) => {
+                const peers = [];
+                for (const id of Array.isArray(ids) ? ids : []) {
+                  const peerId = String(id);
+                  if (peerId === String(selfId)) continue;
+                  try {
+                    const peerSource = ctx.sessions.binding(peerId)?.session?.eventSource;
+                    if (
+                      peerSource !== undefined &&
+                      peerSource !== null &&
+                      typeof peerSource.getSnapshot === 'function'
+                    ) {
+                      peers.push({ id: peerId, source: peerSource });
                     }
-                  : undefined,
+                  } catch {
+// 该会话还没绑定上（成员刚创建）：下一轮 pageIds 变化会重新订阅。
+                  }
+                }
+                return peers;
+              },
             };
           },
         },
@@ -187,7 +200,7 @@ function apply(ctx) {
       }
     };
 
-/** 名册：先用共享投影，事件窗口兜底。 */
+/** 名册：宿主同步过来的 team 投影（实时，不需要自己折事件）。 */
     const rosterOf = (leadId) => {
       try {
         const values = ctx.sessions.list.getSnapshot().projectionsBySession[leadId]?.values;
@@ -195,14 +208,9 @@ function apply(ctx) {
           return values.agentTeam.members;
         }
       } catch {
-// 回落到事件窗口
+// 投影还没同步过来时按「没有成员」处理（@ 补全退化成不提示）。
       }
-      try {
-        const window = ctx.sessions.binding(leadId)?.session?.eventSource?.getSnapshot?.();
-        return window === undefined || window === null ? [] : foldTeamEvents(window).members;
-      } catch {
-        return [];
-      }
+      return [];
     };
 
     const teammatesOf = (leadId) =>
