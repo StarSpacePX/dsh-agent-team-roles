@@ -3,6 +3,14 @@
 
 const STATE_URL = '/api/dsh-agent-team-roles/state';
 const COMMAND_URL = '/api/dsh-agent-team-roles/command';
+/** 「监察员工作区」的唯一来源：dsh-arbiter 自己 /state 上那个已解析好的 workspaceDir，只读不复制配置。
+ * 路径不带 /api —— dsh-arbiter 注册的就是 /dsh-arbiter/state，带上只会 404。 */
+const ARBITER_STATE_URL = '/dsh-arbiter/state';
+/** 宿主侧对 Lead 会话日志的投影（群聊历史）：浏览器只拿得到有界的尾巴，
+ * 早前干过活的团队在本地看不见；宿主持有整份日志，折好放在这里。端点答不上时保留本地窗口。 */
+const TEAM_LOG_URL = '/api/dsh-agent-team-roles/team-log';
+/** 多久重读一次投影。宿主侧是增量折叠，所以这是廉价轮询；4 秒让页签保持活，也不用维护长连接。 */
+const TEAM_LOG_POLL_MS = 4000;
 /** 一串开关点击攒多久再合成一条 set-switches：够合并连点五行，短到没人察觉（点下去时勾选框已经动了）。 */
 const SWITCH_BURST_MS = 120;
 /** 技能块用同一个 120ms 窗口：技能也是「一次手势 = 一条请求」，共用同一节奏。 */
@@ -35,4 +43,4 @@ const CATEGORY_LABEL = {
   other: '其它',
 };
 
-export { STATE_URL, COMMAND_URL, SWITCH_BURST_MS, SKILL_BURST_MS, ERROR_TTL_MS, nakedMemberName, REQUEST_TIMEOUT_MS, GET_ATTEMPTS, RETRY_BACKOFF_MS, CATEGORY_ORDER, CATEGORY_LABEL };
+export { STATE_URL, COMMAND_URL, ARBITER_STATE_URL, TEAM_LOG_URL, TEAM_LOG_POLL_MS, SWITCH_BURST_MS, SKILL_BURST_MS, ERROR_TTL_MS, nakedMemberName, REQUEST_TIMEOUT_MS, GET_ATTEMPTS, RETRY_BACKOFF_MS, CATEGORY_ORDER, CATEGORY_LABEL };

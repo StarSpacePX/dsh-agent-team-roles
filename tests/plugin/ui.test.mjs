@@ -1,4 +1,4 @@
-/** 能力页的行为断言：把真的 lib/client.js 装进假宿主（假 React + 假 fetch）里跑，
+/** 群聊与能力页的行为断言：把真的 lib/client.js 装进假宿主（假 React + 假 fetch）里跑，
  * 只断言渲染出来的东西和真发出去的请求。 */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -37,6 +37,21 @@ const settleAsync = async (panel) => {
     await panel.settle()
   }
 }
+
+// --- 群聊用的事件窗口夹具 ------------------------------------------------
+
+const teamEvent = (seq, type, data, time = 1_700_000_000_000 + seq * 1000) => ({
+  type: 'event',
+  event: { type, seq, time, data },
+})
+const memberEvent = (seq, id, name, phase = 'active') => teamEvent(seq, 'team/member', { teamId: 'lead-1', member: { id, name, phase } })
+const queuedEvent = (seq, id, senderId, senderName, targetId, text) =>
+  teamEvent(seq, 'team/message/queued', {
+    teamId: 'lead-1',
+    message: { id, senderId, senderName, targetId, content: [{ type: 'text', text }] },
+  })
+const deliveredEvent = (seq, messageId) => teamEvent(seq, 'team/message/delivered', { teamId: 'lead-1', messageId })
+const windowOf = (entries, extra = {}) => ({ entries, hasMore: false, ...extra })
 
 // --- S1–S4：能力页 ---------------------------------------------------------
 
@@ -143,3 +158,221 @@ test('S4: 点一个技能只灰它自己那一行，连点合并成一条 set-sk
   }
 })
 
+// --- C1–C7：群聊 ----------------------------------------------------------
+
+test('C1: 成员名单把合成的 Lead 行算进成员数，chip 写明 Lead 与阶段', async () => {
+  const entries = [memberEvent(1, 'devtest', '开发测试'), queuedEvent(2, 'm1', 'lead', 'lead', 'devtest', '开工'), deliveredEvent(3, 'm1')]
+  const panel = await mountPanel({ chat: { getWindow: () => windowOf(entries) } })
+  try {
+    await panel.mountChat()
+    const text = panel.text()
+    assert.ok(text.includes('2 成员'), `成员数没算上合成的 Lead 行：${text}`)
+    assert.ok(text.includes('lead（Lead） · active'), text)
+    assert.ok(text.includes('开发测试 · active'), text)
+  } finally {
+    panel.dispose()
+  }
+})
+
+test('C2: 两个方向折成一行「@N ⇄ @M」，展开行标题去掉开头空行', async () => {
+  const entries = [
+    memberEvent(1, 'devtest', '开发测试'),
+    queuedEvent(2, 'm1', 'lead', 'lead', 'devtest', '第一件事'),
+    deliveredEvent(3, 'm1'),
+    queuedEvent(4, 'm2', 'lead', 'lead', 'devtest', '\n真实标题\n正文不该出现在标题里'),
+    queuedEvent(5, 'm3', 'devtest', '开发测试', 'lead', '收到'),
+  ]
+  const panel = await mountPanel({ chat: { getWindow: () => windowOf(entries) } })
+  try {
+    await panel.mountChat()
+    assert.ok(panel.text().includes('@2 ⇄ @1'), `两个方向没折成一行：${panel.text()}`)
+    const pair = buttonByTitle(panel.tree, 'lead → 开发测试 2 条；开发测试 → lead 1 条')
+    assert.ok(pair, `依赖图那一行的 title 不对：${panel.text()}`)
+    await clickNode(panel, pair)
+    const title = findNode(
+      panel.tree,
+      (node) => node.type === 'span' && typeof node.props.title === 'string' && node.props.title.includes('正文不该出现在标题里')
+    )
+    assert.ok(title, '展开行没把完整正文挂在 title 上')
+    assert.equal(title.children[0], '真实标题', `展开行第一行没去掉开头空行：${JSON.stringify(title.children[0])}`)
+  } finally {
+    panel.dispose()
+  }
+})
+
+test('C3: 消息流默认倒序，点「↑ 正序」后记住这个选择', async () => {
+  const store = new Map()
+  const localStorage = {
+    getItem: (key) => (store.has(key) ? store.get(key) : null),
+    setItem: (key, value) => store.set(key, value),
+  }
+  const entries = [
+    queuedEvent(1, 'm1', 'lead', 'lead', 'devtest', '较早'),
+    queuedEvent(2, 'm2', 'lead', 'lead', 'devtest', '较晚'),
+  ]
+  const panel = await mountPanel({ localStorage, chat: { getWindow: () => windowOf(entries) } })
+  try {
+    await panel.mountChat()
+    const desc = panel.text()
+    assert.ok(desc.indexOf('较晚') < desc.indexOf('较早'), `默认应该是倒序：${desc}`)
+    await clickNode(panel, buttonWith(panel.tree, '↑ 正序'))
+    const asc = panel.text()
+    assert.ok(asc.indexOf('较早') < asc.indexOf('较晚'), `切正序后顺序没变：${asc}`)
+    assert.equal(store.get('dsh-agent-team-roles:chat-order'), 'asc', '选择没记在本机')
+    await panel.mountChat()
+    const again = panel.text()
+    assert.ok(again.indexOf('较早') < again.indexOf('较晚'), '重新打开群聊没记住正序')
+  } finally {
+    panel.dispose()
+  }
+})
+
+test('C4: 空窗口时自动往前翻，按真翻动的段数记账，失败给可见提示', async () => {
+  const empty = () => windowOf([], { hasMore: true })
+  let panel = await mountPanel({ chat: { getWindow: empty, loadOlder: async () => true } })
+  try {
+    await panel.mountChat()
+    await settleAsync(panel)
+    assert.ok(panel.text().includes('已经往前翻了 8 段，还没翻到。'), `自动翻 8 段的结果没显示：${panel.text()}`)
+    assert.ok(panel.text().includes('往前翻日志找找（再翻 8 段）'), panel.text())
+  } finally {
+    panel.dispose()
+  }
+
+  panel = await mountPanel({ chat: { getWindow: empty, loadOlder: async () => false } })
+  try {
+    await panel.mountChat()
+    await settleAsync(panel)
+    assert.ok(panel.text().includes('这个窗口里没有群聊记录。'), `到顶时应该是空态：${panel.text()}`)
+    assert.ok(!panel.text().includes('已经往前翻了'), '没翻动就不该记段数')
+  } finally {
+    panel.dispose()
+  }
+
+  panel = await mountPanel({ chat: { getWindow: empty, loadOlder: async () => { throw new Error('down') } } })
+  try {
+    await panel.mountChat()
+    await settleAsync(panel)
+    assert.ok(panel.text().includes('往前翻失败，请稍后再试。'), `翻失败要看得见：${panel.text()}`)
+    assert.ok(buttonWith(panel.tree, '往前翻日志找找（再翻 8 段）'), '失败后按钮应该还能点')
+  } finally {
+    panel.dispose()
+  }
+})
+
+test('C5: 宿主 markdown 渲染器永远拿到完整 labels，缺渲染器时退回纯文本', async () => {
+  const seen = []
+  const primitives = {
+    MarkdownText: (props) => {
+      seen.push(props)
+      if (props.labels === undefined || props.labels === null || props.labels.code === undefined) {
+        throw new TypeError("Cannot read properties of undefined (reading 'code')")
+      }
+      return { type: 'span', props: { 'data-md': props.text }, children: [props.text] }
+    },
+  }
+  const entries = [queuedEvent(1, 'm1', 'lead', 'lead', 'devtest', '正文一段')]
+  let panel = await mountPanel({ primitives, chat: { getWindow: () => windowOf(entries) } })
+  try {
+    await panel.mountChat()
+    assert.ok(seen.length >= 1, '宿主渲染器一次都没被调用')
+    const last = seen.at(-1)
+    assert.equal(last.variant, 'body', '正文没按 body 变体渲染')
+    assert.equal(last.text, '正文一段')
+    assert.equal(last.labels.code.copyLabel, '复制', `labels 没补全：${JSON.stringify(last.labels)}`)
+    assert.equal(last.labels.code.toolbarLabels.wrapLabel, '换行')
+    const style = findNode(
+      panel.tree,
+      (node) => node.type === 'style' && typeof node.children[0] === 'string' && node.children[0].includes('.atr-chat-md')
+    )
+    assert.ok(style, '正文样式节点没了')
+    assert.ok(style.children[0].includes('margin: 0'), '块级元素的外边距没归零（空行会被双计）')
+  } finally {
+    panel.dispose()
+  }
+
+  panel = await mountPanel({ chat: { getWindow: () => windowOf(entries) } })
+  try {
+    await panel.mountChat()
+    const pre = findNode(panel.tree, (node) => node.type === 'pre')
+    assert.ok(pre, '没有宿主渲染器时应该退回 pre 纯文本')
+    assert.equal(pre.children[0], '正文一段')
+  } finally {
+    panel.dispose()
+  }
+})
+
+test('C6: 打开群聊时把宿主滚动容器拉回顶部，滚不动的容器不动', async () => {
+  // 必须有内容才会渲染带 `ref: rootRef` 的根节点（空态那条 return 的根节点没有 ref）。
+  const entries = [memberEvent(1, 'devtest', '开发测试')]
+  const scroller = { overflowY: 'auto', scrollHeight: 1000, clientHeight: 100, scrollTop: 480 }
+  const decorateHost = (node) => {
+    if (node.props && node.props.ref !== undefined && node.props.ref !== null) node.parentElement = scroller
+  }
+  const computed = (el) => ({ overflowY: el.overflowY })
+  let panel = await mountPanel({ decorateHost, getComputedStyle: computed, chat: { getWindow: () => windowOf(entries) } })
+  try {
+    await panel.mountChat()
+    assert.equal(scroller.scrollTop, 0, '打开群聊后宿主滚动条没回到顶部')
+  } finally {
+    panel.dispose()
+  }
+
+  const still = { overflowY: 'auto', scrollHeight: 100, clientHeight: 100, scrollTop: 480 }
+  const decorateStill = (node) => {
+    if (node.props && node.props.ref !== undefined && node.props.ref !== null) node.parentElement = still
+  }
+  panel = await mountPanel({ decorateHost: decorateStill, getComputedStyle: computed, chat: { getWindow: () => windowOf(entries) } })
+  try {
+    await panel.mountChat()
+    assert.equal(still.scrollTop, 480, '本来就滚不动的容器不该被碰')
+  } finally {
+    panel.dispose()
+  }
+})
+
+test('C7: 宿主投影与本地窗口按 id 合并，不重复，也不把已送达翻回排队中', async () => {
+  const store = new Map()
+  const localStorage = {
+    getItem: (key) => (store.has(key) ? store.get(key) : null),
+    setItem: (key, value) => store.set(key, value),
+  }
+  const entries = [memberEvent(1, 'devtest', '开发测试'), queuedEvent(2, 'm1', 'lead', 'lead', 'devtest', '本地看到的')]
+  const projection = {
+    teamId: 'lead-1',
+    members: [{ id: 'devtest', name: '开发测试', phase: 'active' }],
+    tasks: [],
+    messages: [
+      {
+        message: { id: 'm1', senderId: 'lead', senderName: 'lead', targetId: 'devtest', content: [{ type: 'text', text: '本地看到的' }] },
+        seq: 10,
+        time: 1,
+        delivered: true,
+      },
+      {
+        message: { id: 'm2', senderId: 'lead', senderName: 'lead', targetId: 'devtest', content: [{ type: 'text', text: '只有投影里有' }] },
+        seq: 5,
+        time: 2,
+        delivered: true,
+      },
+    ],
+  }
+  const panel = await mountPanel({ localStorage, teamLogReply: () => projection, chat: { getWindow: () => windowOf(entries) } })
+  try {
+    await panel.mountChat()
+    await settleAsync(panel)
+    const text = panel.text()
+    assert.ok(text.includes('只有投影里有'), `宿主投影里的消息没并进来：${text}`)
+    assert.equal(occurrences(text, '本地看到的'), 1, `同一条消息出现了两次：${text}`)
+    // 默认倒序（新的在上）：本地那条从投影拿到 seq=10，只有投影里那条 seq=5，
+    // 所以「本地看到的」在上面。切「↑ 正序」把两条的先后翻过来。
+    assert.ok(text.indexOf('本地看到的') < text.indexOf('只有投影里有'), `默认倒序不对：${text}`)
+    await clickNode(panel, buttonWith(panel.tree, '↑ 正序'))
+    const asc = panel.text()
+    assert.ok(asc.indexOf('只有投影里有') < asc.indexOf('本地看到的'), `正序时 seq 小的应该排在前面：${asc}`)
+    assert.ok(asc.includes('已送达'), '投影说已送达，界面上没体现')
+    assert.ok(!asc.includes('排队中'), `本地还没收到送达，但投影已经送达了：${asc}`)
+  } finally {
+    panel.dispose()
+  }
+})

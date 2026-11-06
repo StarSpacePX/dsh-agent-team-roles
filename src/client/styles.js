@@ -1,7 +1,8 @@
 // 客户端真源码（lib/client.js 是构建产物，勿手改）。
-// 颜色 / 圆角 / 字体不写字面量：全部来自 tokens.js（官方 --dsw-* 令牌），由测试钉住。
+// 设置区样式 + 群聊 tab 样式（chatStyles）。
+// 颜色 / 圆角 / 字体不写字面量：全部来自 tokens.js（官方 --dsw-* 令牌或群聊冻结值），由测试钉住。
 
-import { T, caretImage } from './tokens.js';
+import { T, chat, caretImage } from './tokens.js';
 
 // 字号与几何只从 tokens.js 取：F = 字号五档（15/13/12/11/10），L = 三档间距 + 行几何。
 const F = T.font;
@@ -189,4 +190,170 @@ const styles = {
   error: { color: T.error, fontSize: F.sm, whiteSpace: 'pre-wrap' },
 };
 
-export { styles };
+const chatStyles = {
+// 间距只用三档：8（组内）/ 12（块内）/ 20（块间），圆角统一 8（胶囊除外）；线只用于分隔性质不同的东西。
+  root: { display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 14px', fontSize: F.md, minHeight: 0, flex: 1 },
+// 顶部统计行：行本身没有框，每个统计项各自一个小框，字号全程不动。
+  header: {
+    display: 'flex',
+    gap: 10,
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    color: 'inherit',
+  },
+// 单个统计项的小框：亮灰细边 + 8px 圆角，数字 15px/600、标签 11px。
+  stat: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: 5,
+    border: chat.hairlineBorder,
+    borderRadius: 8,
+    padding: '2px 8px',
+  },
+  statValue: { fontSize: F.lg, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' },
+  statLabel: { fontSize: F.xs, opacity: 0.6 },
+// 零散小注解（「历史未载完」「整份日志」）：最轻的一级，不抢眼。
+  note: { fontSize: F.xs, opacity: 0.55 },
+  roster: { display: 'flex', gap: 6, flexWrap: 'wrap' },
+// 成员名单：每个成员用自己的角色色 + 白字，形状复用 nameChip（见 chat/view.js 的 rosterChipStyle）。
+  list: { display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', minHeight: 0 },
+// 消息卡片的整圈边框 = 发送者自己的角色色；只染边框，卡片底色与文字保持原样。
+// 颜色不写在这里：它在角色的 role.json 里，由 chat/colors.js 从 /state 取、渲染时 inline 上色；
+// 样式表只留形状。
+  message: { border: '1px solid transparent', borderRadius: 8, padding: '8px 12px', transition: 'border-color 0.12s ease' },
+// 「谁 → 谁」这一行：发送者与收件人共用同一种实底白字 chip，只用颜色区分角色、不分主次，
+// 时间与状态靠右。
+  meta: {
+    display: 'flex',
+    gap: 8,
+    alignItems: 'center',
+    fontSize: F.xs,
+    opacity: 1,
+    marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  nameChip: {
+    fontWeight: 700,
+    fontSize: F.sm,
+    letterSpacing: '0.02em',
+    color: chat.chipText,
+    background: chat.purple,
+    borderRadius: 6,
+    padding: '1px 7px',
+  },
+  metaRight: { marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' },
+// 时间固定淡紫、不跟状态变色；送达状态保持自己的绿 / 橙 / 红（ok / pending / failed）。
+  time: { color: chat.timePurple, fontVariantNumeric: 'tabular-nums' },
+  body: { margin: 0, fontFamily: 'inherit', fontSize: F.sm, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
+  ok: { color: chat.ok },
+// 每一条的发送结果保持独立的绿 / 红，不受发送者颜色影响。
+  pending: { color: chat.pending },
+  failed: { color: chat.failed, fontWeight: 600 },
+// 分区标题（「角色依赖图」/「消息流」）保留标题色（主题紫 = Lead 色），
+// 但去掉了通栏下划线：分段靠 20px 组间距 + 8px 标题下间距。
+  sectionTitle: { fontSize: F.sm, fontWeight: 600, letterSpacing: '0.04em', color: chat.purple },
+// 标题行：标题在左，右侧放该区的控件（消息流的排序）。不画分隔线。
+  sectionBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+    paddingBottom: 8,
+  },
+  orderGroup: { display: 'flex', gap: 4, marginLeft: 'auto' },
+  orderBtn: {
+    padding: '1px 8px',
+    borderRadius: 6,
+    border: chat.inheritBorder,
+    background: 'transparent',
+    color: 'inherit',
+    cursor: 'pointer',
+    fontSize: F.xs,
+    opacity: 0.6,
+  },
+  // 当前生效的那一侧（默认倒序）实心高亮，一眼看出现在按哪种顺序读。
+  orderOn: { opacity: 1, fontWeight: 700, background: chat.hoverFill },
+  // 用户 2026-10-13：「@统计周期 去掉 @，把整行搞好看一点、大一点点」——整行当一条工具条
+  // 13px、控件加高加圆角；后来（同日）「去掉灰底，加个亮灰色框框」——填充改成描边。
+  controls: {
+    display: 'flex',
+    gap: 10,
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    fontSize: F.md,
+    fontWeight: 400,
+    color: 'inherit',
+    // 用户 2026-10-13：「第二行我框起来的去掉灰底，加个亮灰色框框」→ 再去掉外框，
+    // 现在这一条只剩白底与两个下拉框，灰色全部下放到控件自身。
+    background: 'transparent',
+    border: 'none',
+    borderRadius: 8,
+    padding: '6px 0',
+  },
+  // 短横线分隔符（<起始> - <结束>），用最轻的一级灰。
+  controlLabel: { fontSize: F.sm, opacity: 0.6 },
+  select: {
+    font: 'inherit',
+    fontSize: F.md,
+    // 用户 2026-10-13：「点击再取消后框框不见了」→ 跟着宿主的做法走：关掉原生外观
+    // （`appearance:none`）自己画箭头，边框永远由我们控制，浏览器那圈焦点外观不再插手。
+    appearance: 'none',
+    WebkitAppearance: 'none',
+    outline: 'none',
+    padding: '3px 22px 3px 8px',
+    borderRadius: 6,
+// 白底 + 亮灰细边。长写三件套（不是 border 简写）：聚焦态只覆盖 borderColor，
+// 若这里是简写，失焦那一刻 React 会删掉 borderColor → 边框落回 currentColor（黑）。
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: chat.hairline,
+    background: 'transparent',
+    backgroundImage: chat.caretImage,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 6px center',
+    backgroundSize: '10px 10px',
+    color: 'inherit',
+    maxWidth: 260,
+  },
+  graph: { display: 'flex', flexDirection: 'column', gap: 4 },
+// 依赖图行：去掉每行描边，改成对齐的两列 + 等宽数字；常态与悬停都不上底色。
+  graphRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    border: 'none',
+    borderRadius: 8,
+    padding: '5px 8px',
+    background: 'transparent',
+    color: 'inherit',
+    font: 'inherit',
+    lineHeight: '20px',
+    textAlign: 'left',
+    cursor: 'pointer',
+  },
+  arrow: { opacity: 0.45, fontSize: F.sm },
+// 展开行里的正文摘要：整行单行、行尾省略，全文挂在 title 上悬停可看。
+  tlText: {
+    flex: '1 1 auto',
+    minWidth: 0,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+// 消息数去掉 marginLeft: auto 的右靠，落在两个胶囊之间（跟着 graphRow 的 8px 间距走）。
+  count: { fontSize: F.sm, opacity: 0.6, fontVariantNumeric: 'tabular-nums' },
+  timeline: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    margin: '2px 0 6px 14px',
+    paddingLeft: 10,
+    borderLeft: chat.separatorLine,
+  },
+  tlRow: { display: 'flex', gap: 8, fontSize: F.xs, opacity: 0.9 },
+  tlTime: { fontVariantNumeric: 'tabular-nums', opacity: 0.75, flex: '0 0 auto' },
+  empty: { border: chat.dashedBorder, borderRadius: 8, padding: '14px', opacity: 0.85, lineHeight: 1.7 },
+};
+
+export { styles, chatStyles };

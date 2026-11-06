@@ -171,17 +171,17 @@ test('D2: If-None-Match 命中回 304 且不带正文，不匹配仍回 200', as
 test('D2: 走一次 /command 之后缓存作废，ETag 跟着变', async () => {
   await withPlugin(async (harness) => {
     const first = await hitState(harness)
-    const before = JSON.parse(first.body).bindMembers
+    const before = JSON.parse(first.body).hideChatTab
 
     const posted = await call(harness.routes, COMMAND_URL, 'POST', {
-      action: 'set-bind-members',
+      action: 'set-hide-chat-tab',
       enabled: !before,
     })
     assert.equal(posted.status, 200)
 
     const after = await hitState(harness)
     assert.equal(after.status, 200)
-    assert.equal(JSON.parse(after.body).bindMembers, !before)
+    assert.equal(JSON.parse(after.body).hideChatTab, !before)
     assert.notEqual(after.headers.etag, first.headers.etag, '写过的命令必须让 ETag 变')
   })
 })

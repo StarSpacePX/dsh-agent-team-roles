@@ -1,8 +1,8 @@
 // 全插件唯一的样式定义处。
 // 规则：除本文件外，src/client 源文件里不许出现颜色字面量（#rrggbb / rgba(...)），
 // 也不许用 currentColor 当边框色 —— 由 tests/plugin/style-tokens.test.mjs 钉住。
-// 颜色字面量只许出现在这里；分两层：T = 官方设计令牌 --dsw-*（宿主 theme 注入），
-// 其余零散常量（如自绘下拉箭头）也收在本文件。
+// 角色色板（chat.palette）也收在这里：它是数据，但同样属于「颜色只在一个文件里定义」。
+// 分两层：T = 官方设计令牌 --dsw-*（宿主 theme 注入）；chat = 群聊页既有冻结值。
 
 // 声明一律写成普通 const/function，文件末尾一条 export { … } 列出对外符号（构建器只认这个子集）。
 
@@ -91,8 +91,55 @@ const T = {
   },
 };
 
-/** 自绘下拉框的箭头（内嵌 svg）：appearance:none 之后原生箭头会消失，靠这张图补回来。 */
+/** 自绘下拉框的箭头（内嵌 svg）：appearance:none 之后原生箭头会消失，靠这张图补回来。
+ * 设置区与群聊共用同一个资产。 */
 const caretImage =
   "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M1.5 3.75L5 7.25l3.5-3.5' fill='none' stroke='%23808080' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
 
-export { T, caretImage };
+// 颜色与调色板的权威在宿主侧（lib/roleColor.js），随 /state 与角色一起下来。
+// 下面这份只是回包前的兜底，以及角色表里没有的成员（手工起的名字）用的散列调色板，顺序与宿主侧一致。
+const PALETTE = [
+  '#1D4ED8',
+  '#0F766E',
+  '#B91C1C',
+  '#C2410C',
+  '#A21CAF',
+  '#4338CA',
+  '#15803D',
+  '#0369A1',
+  '#9D174D',
+  '#4D7C0F',
+];
+
+/** 把 #rrggbb 按比例调淡（消息卡边框平时只到发送者色的 40%，悬停才转实色）。
+ * 颜色字符串拼接也关在这一层，源文件里只调用；不是 #rrggbb 就原样返回。 */
+function withAlpha(color, alpha) {
+  const hex = /^#([0-9a-fA-F]{6})$/.exec(String(color));
+  if (hex === null) return color;
+  const n = Number.parseInt(hex[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+/** 群聊页既定值 —— UI 冻结：这些值一个字都不改，只搬个家。
+ * 连 currentColor 这种跟着主题文字色走的写法也收在这里，源文件里不许再写。 */
+const chat = {
+  hairline: 'rgba(128,128,128,0.28)', // 统计项 / 下拉框的亮灰细边
+  hairlineBorder: '1px solid rgba(128,128,128,0.28)',
+  inheritBorder: '1px solid currentColor', // 排序按钮等跟着文字色走的那档
+  separator: 'rgba(128,128,128,0.35)', // 时间线左侧竖线
+  separatorLine: '2px solid rgba(128,128,128,0.35)',
+  dashed: 'rgba(128,128,128,0.4)',
+  dashedBorder: '1px dashed rgba(128,128,128,0.4)', // 空态虚线框
+  hoverFill: 'rgba(128,128,128,0.25)', // 排序按钮选中底
+  focusRing: 'rgba(128,128,128,0.6)', // 下拉框聚焦边
+  caretImage,
+  chipText: '#ffffff',
+  purple: '#6B21A8', // 主题紫 = Lead 色
+  palette: PALETTE,
+  timePurple: '#c4b5fd',
+  ok: '#4a9d6a',
+  pending: '#e8a33d',
+  failed: '#e05252',
+};
+
+export { T, chat, caretImage, withAlpha };

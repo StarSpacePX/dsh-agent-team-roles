@@ -16,6 +16,7 @@ import { ROSTER_ROLE_LINE, rosterText } from '../../lib/team-roster.js'
 
 const STATE_URL = '/api/dsh-agent-team-roles/state'
 const COMMAND_URL = '/api/dsh-agent-team-roles/command'
+const TEAM_LOG_URL = '/api/dsh-agent-team-roles/team-log'
 
 /** 写路径把重建排到回包之后（REBUILD_DELAY_MS = 200 的去抖计时器），所以「写完要看到新定义」的断言都得等这次后台重建落定。 */
 const REBUILD_WAIT_MS = 400
@@ -219,6 +220,7 @@ function fakeRequest(method, body, url) {
   const chunks = body === undefined ? [] : [Buffer.from(JSON.stringify(body), 'utf8')]
   return {
     method,
+// team-log 路由从 query string 读 sessionId，所以测试要能给它递 URL（别的路由不读）。
     url,
     async *[Symbol.asyncIterator]() {
       for (const chunk of chunks) yield chunk

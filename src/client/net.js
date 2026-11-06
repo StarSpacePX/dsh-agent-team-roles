@@ -1,7 +1,7 @@
 // 客户端真源码（lib/client.js 是构建产物，勿手改）。
 // HTTP 层：超时、重试、命令节流、状态读取。
 
-import { COMMAND_URL, GET_ATTEMPTS, REQUEST_TIMEOUT_MS, RETRY_BACKOFF_MS, STATE_URL } from './constants.js';
+import { COMMAND_URL, GET_ATTEMPTS, ARBITER_STATE_URL, REQUEST_TIMEOUT_MS, RETRY_BACKOFF_MS, STATE_URL } from './constants.js';
 
 async function timedFetch(url, init) {
   if (typeof AbortController !== 'function') return fetch(url, init);
@@ -70,4 +70,19 @@ async function fetchState() {
   return payload;
 }
 
-export { timedFetch, requestWithRetry, inflightCommands, command, fetchState };
+/** 群聊页签可隐藏：开关在设置文档里（settings.hideChatTab），宿主侧说该有才挂载。
+ * 隐藏与显示走 slot 自己的 disposer，设置面板能切而不用刷页面。
+ * 契约：加页签永远不能影响别的。 */
+
+/** 监察员工作区：只读 dsh-arbiter 自己 /state 上的 workspaceDir，不在这里另配路径。
+ * 读不到就抛，由调用方 fail open（照旧显示群聊）。
+ * @returns {Promise<string>} 目录（配置还没解析出来时可能是空串）。 */
+async function fetchArbiterWorkspace() {
+  const response = await requestWithRetry(ARBITER_STATE_URL, { headers: { accept: 'application/json' } });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) throw new Error((payload && payload.error) || `HTTP ${response.status}`);
+  const dir = payload && typeof payload.workspaceDir === 'string' ? payload.workspaceDir : '';
+  return dir.trim();
+}
+
+export { timedFetch, requestWithRetry, inflightCommands, command, fetchState, fetchArbiterWorkspace };

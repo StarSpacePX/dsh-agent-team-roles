@@ -83,6 +83,39 @@ test('set-bind-members rejects a missing or non-boolean flag', async () => {
   }, REVIEWER)
 })
 
+test('set-hide-chat-tab persists the R6 switch, defaulting to "shown"', async () => {
+  await withPlugin(async ({ routes }, dir) => {
+// 磁盘上缺省 = 显示页签：宿主没有明确说不要就挂载，旧 roles.json 继续能用。
+    const before = await call(routes, STATE_URL)
+    assert.equal(before.json.hideChatTab, false)
+
+    const hidden = await call(routes, COMMAND_URL, 'POST', { action: 'set-hide-chat-tab', enabled: true })
+    assert.equal(hidden.json.state.hideChatTab, true)
+
+    const stored = JSON.parse(await readFile(path.join(dir, 'roles.json'), 'utf8'))
+    assert.equal(stored.settings.hideChatTab, true)
+
+// 文档级设置必须能重载存活，也要能翻回去。
+    const reloaded = await call(routes, COMMAND_URL, 'POST', { action: 'reload' })
+    assert.equal(reloaded.json.state.hideChatTab, true)
+    const shown = await call(routes, COMMAND_URL, 'POST', { action: 'set-hide-chat-tab', enabled: false })
+    assert.equal(shown.json.state.hideChatTab, false)
+    assert.equal((await call(routes, STATE_URL)).json.hideChatTab, false)
+  }, REVIEWER)
+})
+
+test('set-hide-chat-tab rejects a missing or non-boolean flag', async () => {
+  await withPlugin(async ({ routes }) => {
+    assert.equal((await call(routes, COMMAND_URL, 'POST', { action: 'set-hide-chat-tab' })).status, 400)
+    assert.equal(
+      (await call(routes, COMMAND_URL, 'POST', { action: 'set-hide-chat-tab', enabled: 'yes' })).status,
+      400,
+    )
+// 被拒的调用不能写入任何东西。
+    assert.equal((await call(routes, STATE_URL)).json.hideChatTab, false)
+  }, REVIEWER)
+})
+
 /** registered 看不出挂载失败：register() 无论定义是否激活都返回 disposer，
  * 失败只体现为注册表 roster 上的 broken 诊断。这个事实留在本地 ——
  * presets.list() 会 await 整个 Host Loader，所以 /state 只报我们自己角色的挂载健康。 */

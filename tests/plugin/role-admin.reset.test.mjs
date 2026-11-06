@@ -28,11 +28,11 @@ test('create-role gives the role a directory with its own config and instruction
         assert.equal(role.capabilities.loop, undefined)
 
 // 角色真的是那个文件 —— 索引只存设置。（它随第一个设置出现，所以先写一个。）
-        await call(routes, COMMAND_URL, 'POST', { action: 'set-bind-members', enabled: true })
+        await call(routes, COMMAND_URL, 'POST', { action: 'set-hide-chat-tab', enabled: true })
         const index = JSON.parse(await readFile(path.join(dir, 'roles.json'), 'utf8'))
         assert.equal(index.version, 3)
         assert.equal(index.roles, undefined)
-        assert.equal(index.settings.bindMembers, true)
+        assert.equal(index.settings.hideChatTab, true)
         assert.deepEqual(JSON.parse(await readFile(role.roleFile, 'utf8')).id, 'team-reviewer')
 
 // ……而规则文件是副本，不是指向主会话那份的引用。

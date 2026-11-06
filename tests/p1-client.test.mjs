@@ -42,7 +42,7 @@ test('E1: GET /state 超时会中止请求，而不是永远等下去', async ()
   try {
     await sleep(700)
     assert.ok(panel.net.aborted >= 1, '超时没有触发 abort')
-    assert.equal(panel.net.stateCalls, 3, `重试应停在 3 次，实际 ${panel.net.stateCalls} 次`)
+    assert.equal(panel.net.scopeCalls.panel, 3, `重试应停在 3 次，实际 ${panel.net.scopeCalls.panel} 次`)
     await panel.settle()
     assert.match(panel.text(), /PROBE-请求超时中止/, '超时失败没有变成可见的提示')
   } finally {
@@ -59,7 +59,7 @@ test('E1: 幂等 GET 遇 5xx 会有限重试，成功即返回', async () => {
   try {
     await sleep(700)
     await panel.settle()
-    assert.equal(panel.net.stateCalls, 3, `503 应重试到第 3 次，实际 ${panel.net.stateCalls} 次`)
+    assert.equal(panel.net.scopeCalls.panel, 3, `503 应重试到第 3 次，实际 ${panel.net.scopeCalls.panel} 次`)
     assert.match(panel.text(), /探查员/, '重试成功后没有采纳回包')
   } finally {
     panel.dispose()
@@ -74,7 +74,7 @@ test('E1: 幂等 GET 的 4xx 不重试', async () => {
   })
   try {
     await sleep(900)
-    assert.equal(panel.net.stateCalls, 1, `4xx 不该重试，实际 ${panel.net.stateCalls} 次`)
+    assert.equal(panel.net.scopeCalls.panel, 1, `4xx 不该重试，实际 ${panel.net.scopeCalls.panel} 次`)
   } finally {
     panel.dispose()
   }
@@ -100,7 +100,7 @@ test('E1: GET 重试到上限就放弃，并把失败变成可见提示', async 
   try {
     await sleep(1600)
     await panel.settle()
-    assert.equal(panel.net.stateCalls, 3, `重试上限应是 3，实际 ${panel.net.stateCalls} 次`)
+    assert.equal(panel.net.scopeCalls.panel, 3, `重试上限应是 3，实际 ${panel.net.scopeCalls.panel} 次`)
     assert.match(panel.text(), /PROBE-一直503/, '重试耗尽后没有提示')
   } finally {
     panel.dispose()
@@ -143,7 +143,7 @@ test('E2: refresh 的过期回包被丢弃（后发覆盖先发）', async () =>
     assert.match(
       panel.text(),
       /FRESH-丙/,
-      `后发的 refresh 结果没有被采纳（panel /state 次数=${panel.net.stateCalls}，命令=${panel.net.commandCalls}，动作=${panel.net.commands.map((item) => item && item.action).join(',')}）`,
+      `后发的 refresh 结果没有被采纳（panel /state 次数=${panel.net.scopeCalls.panel}，命令=${panel.net.commandCalls}，动作=${panel.net.commands.map((item) => item && item.action).join(',')}）`,
     )
 
     // 现在把"先发但晚到"的那份回包放出来：它必须被丢掉。

@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'
 
-import { T } from '../../src/client/tokens.js'
+import { T, chat, caretImage, withAlpha } from '../../src/client/tokens.js'
 
 const SRC = new URL('../../src/client/', import.meta.url)
 const BUNDLE = new URL('../../lib/client.js', import.meta.url)
@@ -114,6 +114,29 @@ test('设置区的控件走官方令牌（字体继承是"字体毛躁"的根因
   assert.match(T.button.border, /^1px solid var\(--dsw-alias-border-l3/)
 })
 
+test('群聊页的既定值被冻结（逐项对值，防止顺手改 UI）', () => {
+  assert.equal(chat.purple, '#6B21A8') // 主题紫 = Lead 色
+  assert.equal(chat.chipText, '#ffffff')
+  assert.equal(chat.timePurple, '#c4b5fd')
+  assert.equal(chat.ok, '#4a9d6a')
+  assert.equal(chat.pending, '#e8a33d')
+  assert.equal(chat.failed, '#e05252')
+
+  assert.equal(chat.hairline, 'rgba(128,128,128,0.28)')
+  assert.equal(chat.hairlineBorder, '1px solid rgba(128,128,128,0.28)')
+  assert.equal(chat.inheritBorder, '1px solid currentColor')
+  assert.equal(chat.separatorLine, '2px solid rgba(128,128,128,0.35)')
+  assert.equal(chat.dashedBorder, '1px dashed rgba(128,128,128,0.4)')
+  assert.equal(chat.hoverFill, 'rgba(128,128,128,0.25)')
+  assert.equal(chat.focusRing, 'rgba(128,128,128,0.6)')
+  assert.equal(chat.caretImage, caretImage)
+
+// 角色色板是数据：顺序与宿主 lib/roleColor.js 一致，共 10 档。
+  assert.equal(chat.palette.length, 10)
+  assert.equal(chat.palette[0], '#1D4ED8')
+  assert.equal(chat.palette[9], '#4D7C0F')
+})
+
 test('页签页跟底部输入框卡片同宽同位（用户 ）', async () => {
 // 官方输入框卡片 = padding:0 var(--dsh-composer-side-clearance) + width:100%;max-width:var(--dsh-composer-card-max-width)。
 // 本面板照抄这对声明（实测 clearance=16px、卡片上限=712px），于是两块盒子逐像素相同。
@@ -147,6 +170,14 @@ test('横排里的控件要撑满面板上限宽度（用户 ）', async () => {
     const src = await readFile(new URL(`../../src/client/${rel}`, import.meta.url), 'utf8')
     assert.match(src, pattern, `${rel} 的横排控件要撑满宽度`)
   }
+})
+
+test('withAlpha：只对 #rrggbb 生效，其余原样返回', () => {
+  assert.equal(withAlpha('#6B21A8', 0.4), 'rgba(107, 33, 168, 0.4)')
+  assert.equal(withAlpha('#ffffff', 0.4), 'rgba(255, 255, 255, 0.4)')
+// 令牌（var(--dsw-*)）和已经带透明度的值都不能被二次解析。
+  assert.equal(withAlpha('var(--dsw-alias-brand-primary)', 0.4), 'var(--dsw-alias-brand-primary)')
+  assert.equal(withAlpha('rgba(1,2,3,0.5)', 0.4), 'rgba(1,2,3,0.5)')
 })
 
 test('构建产物里带着令牌与自绘箭头（源码之外还要真的发出去）', async () => {

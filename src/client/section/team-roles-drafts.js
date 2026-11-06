@@ -2,6 +2,7 @@
 // 容器第 2 段：字段草稿、dirty 基线、displayRole。
 
 import { nakedMemberName } from './../constants.js';
+import { chatTab } from './../entries.js';
 import { React } from './../react.js';
 
 function useTeamRolesDrafts(core) {
@@ -29,6 +30,13 @@ function useTeamRolesDrafts(core) {
     if (idDraft === nakedMemberName(idBaseline$.current, prefix)) return;
     markDirty('id');
   }, [idDraft]);
+
+// R6 — 会话页签跟随开关实时变化：隐藏 / 显示走 slot 的 disposer，不用重载。
+  const hideChatTab = state === null ? undefined : state.hideChatTab;
+  React.useEffect(() => {
+    if (hideChatTab === undefined) return;
+    chatTab.setHidden(hideChatTab === true);
+  }, [hideChatTab]);
 
 /** 带乐观覆盖的开关，覆盖写在这份 overlay 里。
  * writeDraft 合并补丁；值为 undefined 表示**丢掉**这个键（回包已到，/state 才是真相）。 */
@@ -138,6 +146,7 @@ function useTeamRolesDrafts(core) {
   return {
     displayRole,
     editDraft,
+    hideChatTab,
     markPending,
     writeDraft,
   };

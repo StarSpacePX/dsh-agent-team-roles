@@ -108,6 +108,7 @@ export function statePayload(roles = [role(), secondRole()], extra = {}) {
     bindMembers: false,
     bindMembersSource: 'none',
     team: { enabled: false, available: true },
+    hideChatTab: false,
     template: { presetId: 'standard', file: 'C:\\fake\\standard.patch.yml', extractedAt: '2026-01-01T00:00:00.000Z', rowCount: 2 },
     modes: [{ id: 'standard', label: '标准模式', description: null, available: true, source: 'bundled', file: 'C:\\fake\\standard.patch.yml', rowCount: 2 }],
     notes: { values: {}, custom: [], error: null },

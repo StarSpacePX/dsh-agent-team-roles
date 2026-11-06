@@ -306,7 +306,7 @@ test('RoleStore migrates a v1 index into per-role files', async () => {
       path.join(dir, 'roles.json'),
       JSON.stringify({
         version: 1,
-        settings: { bindMembers: true },
+        settings: { hideChatTab: true },
         roles: [{ id: 'team-old', name: 'Old', description: 'inline', order: 5 }],
       }),
       'utf8',
@@ -318,7 +318,7 @@ test('RoleStore migrates a v1 index into per-role files', async () => {
       store.roles.map((role) => role.id),
       ['team-old'],
     )
-    assert.equal(store.settings.bindMembers, true)
+    assert.equal(store.settings.hideChatTab, true)
 
     // The inline copy is gone, the role file is not.
     const index = JSON.parse(await readFile(path.join(dir, 'roles.json'), 'utf8'))
