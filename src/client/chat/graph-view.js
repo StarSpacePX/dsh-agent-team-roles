@@ -21,6 +21,8 @@ function TeamChatGraph({ p }) {
     expanded,
     togglePair,
     graphChipStyle,
+    dotStyle,
+    latestClock,
     colorOfRow,
     nameById,
     leadIds,
@@ -28,7 +30,9 @@ function TeamChatGraph({ p }) {
   return h(
     React.Fragment,
     null,
-    h('div', { style: chatStyles.sectionBar }, h('span', { style: chatStyles.sectionTitle }, '角色依赖图')),
+    h('div', { style: chatStyles.sectionBar },
+      h('span', { style: chatStyles.sectionTitle }, '角色依赖图'),
+    ),
     leadRows.length > 1
       ? h(
           'div',
@@ -47,11 +51,12 @@ function TeamChatGraph({ p }) {
                   endId: range !== null && range.endId ? range.endId : '',
                 }),
             },
-            leadRows.map((row, index) =>
+            leadRows.map((row) =>
               h(
                 'option',
                 { key: `start:${row.message.id}`, value: String(row.message.id) },
-                `第 ${index + 1} 次 @ · ${formatClock(row.time)}`,
+                // 只显示时间：第几次 @ 的信息由下拉的先后顺序本身表达，不再重复文字。
+                formatClock(row.time),
               ),
             ),
           ),
@@ -69,12 +74,12 @@ function TeamChatGraph({ p }) {
                   endId: event.target.value,
                 }),
             },
-            [h('option', { key: 'end:latest', value: '' }, '最新（含 @ 之后的回复）')].concat(
-              leadRows.map((row, index) =>
+            [h('option', { key: 'end:latest', value: '' }, latestClock ?? '最新')].concat(
+              leadRows.map((row) =>
                 h(
                   'option',
                   { key: `end:${row.message.id}`, value: String(row.message.id) },
-                  `第 ${index + 1} 次 @ · ${formatClock(row.time)}`,
+                  formatClock(row.time),
                 ),
               ),
             ),
@@ -84,7 +89,7 @@ function TeamChatGraph({ p }) {
             : h(
                 'button',
                 { type: 'button', style: styles.button, onClick: () => setRange(null) },
-                '恢复默认（第一次 @ → 最新）',
+                '恢复默认',
               ),
         )
       : null,
@@ -132,9 +137,19 @@ function TeamChatGraph({ p }) {
                   style: chatStyles.graphRow,
                   onClick: () => togglePair(pair.key),
                 },
-                h('span', { style: graphChipStyle(colorOfRow(leftId, leftName)) }, leftName),
+                h(
+                  'span',
+                  { style: graphChipStyle(colorOfRow(leftId, leftName)) },
+                  h('i', { style: dotStyle(colorOfRow(leftId, leftName)) }),
+                  leftName,
+                ),
                 h('span', { style: chatStyles.count }, countText),
-                h('span', { style: graphChipStyle(colorOfRow(rightId, rightName)) }, rightName),
+                h(
+                  'span',
+                  { style: graphChipStyle(colorOfRow(rightId, rightName)) },
+                  h('i', { style: dotStyle(colorOfRow(rightId, rightName)) }),
+                  rightName,
+                ),
               ),
               expanded.has(pair.key)
                 ? h(

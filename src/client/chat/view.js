@@ -3,9 +3,9 @@
 
 import { React, h } from './../react.js';
 import { chatStyles } from './../styles.js';
-import { chat, withAlpha } from './../tokens.js';
+import { chat, T, withAlpha } from './../tokens.js';
 import { useRoleColors } from './colors.js';
-import { foldRelayMessages } from './fold.js';
+import { foldRelayMessages, formatClock } from './fold.js';
 import { foldPairs, useEventWindow, useRelayWindows, useTeamProjection } from './hooks.js';
 import { useOrder } from './order.js';
 import { MARKDOWN_CSS, resetHostScroll } from './markdown-style.js';
@@ -94,12 +94,21 @@ function TeamChatView(props) {  const window = useEventWindow(props.subscribe, p
       : [{ id: leadId, name: 'lead', phase: 'active' }, ...folded.members];
 
 // 颜色按「这个人是谁」取：Lead 固定深紫，其他角色用自己 role.json 里的颜色。
-// 发送者、收件人、依赖图两端都用同一种 chip：只有颜色不同，不分主次。
+// 角色色只做标识：名字前一颗 6px 色点 + 消息左侧 2px 色轨，不再拿它铺大块实底。
+// 发送者、收件人、依赖图两端都用同一种 chip：只有色点颜色不同，不分主次。
   const colorOfRow = (id, name) =>
     leadIds.has(String(id)) ? roleColors.lead : roleColors.colorFor(id, name);
-  const chipStyle = (color) => ({ ...chatStyles.nameChip, background: color, color: chat.chipText });
-// 顶部成员名单用同一个 chip 形状，只是圆角更大（胶囊）。
-  const rosterChipStyle = (color) => ({ ...chipStyle(color), borderRadius: 999, padding: '2px 10px' });
+  const chipStyle = () => ({ ...chatStyles.nameChip, color: T.labelPrimary });
+  const dotStyle = (color) => ({ ...chatStyles.nameDot, border: `1px solid ${color}` });
+// 顶部成员名单：同一个「色点 + 名字」，外面套一圈浅底细边做成胶囊。
+  const rosterChipStyle = () => ({
+    ...chatStyles.nameChip,
+    color: T.labelPrimary,
+    padding: '2px 9px',
+    borderRadius: 999,
+    border: `1px solid ${T.borderSoft}`,
+    background: T.fieldBg,
+  });
 // 消息卡整圈边框平时只到发送者色的 40%（线太密不精致），鼠标移到这一条上才转实色；
 // 依赖图行同理，平时无底色、悬停给极浅底色。调淡（含颜色字符串拼接）关在 tokens.js 里。
   const fade = withAlpha;
@@ -134,6 +143,8 @@ function TeamChatView(props) {  const window = useEventWindow(props.subscribe, p
       : leadRows.find((row) => row.message.id === messageId) ?? fallback;
   const cycleStart = boundRow(range === null ? undefined : range.startId, leadRows[0]);
   const cycleEnd = boundRow(range === null ? undefined : range.endId, latest ?? leadRows[leadRows.length - 1]);
+// 结束下拉的「最新」项也只显示时间：项名就是这个周期的终点（默认 = 最后一条消息）。
+  const latestClock = latest === undefined ? null : formatClock(latest.time);
 // 范围用 time 不用 seq：转达消息来自不同会话，seq 是各自会话的计数器，不可比。
   const startAt = cycleStart === undefined ? Number.NEGATIVE_INFINITY : cycleStart.time;
   const endAt = cycleEnd === undefined ? Number.POSITIVE_INFINITY : cycleEnd.time;
@@ -158,11 +169,10 @@ function TeamChatView(props) {  const window = useEventWindow(props.subscribe, p
     graphChipNames.add(pair.rightName);
   }
   const graphChipWidth = Math.ceil(Math.max(56, ...[...graphChipNames].map(estimateChipWidth)));
-  const graphChipStyle = (color) => ({
-    ...chipStyle(color),
+  const graphChipStyle = () => ({
+    ...chipStyle(),
     width: graphChipWidth,
     boxSizing: 'border-box',
-    textAlign: 'center',
   });
   const pending = shown.filter((row) => row.delivered !== true).length;
 
@@ -217,8 +227,8 @@ function TeamChatView(props) {  const window = useEventWindow(props.subscribe, p
   const p = {
     roster, shown, pending, folded, leadIds, colorOfRow, rosterChipStyle, onLoadOlder, busy,
     leadRows, cycleStart, cycleEnd, range, setRange, selectStyle, setFocusKey,
-    pairs, inverted, expanded, togglePair, graphChipStyle, nameById,
-    ordered, order, pickOrder, hoverKey, setHoverKey, fade, chipStyle,
+    pairs, inverted, expanded, togglePair, graphChipStyle, nameById, chipStyle, dotStyle, latestClock,
+    ordered, order, pickOrder, hoverKey, setHoverKey, fade,
   };
 
   return h(
@@ -228,9 +238,10 @@ function TeamChatView(props) {  const window = useEventWindow(props.subscribe, p
 // 这里只把块级元素外边距归零（pre-wrap 保留，单换行折行不受影响），块间距回到「一个空行 = 一行高」。
 // 用重复类名提高选择器权重，压过宿主 CSS module 的同权重规则。
     h('style', { key: 'atr-md-css' }, MARKDOWN_CSS),
-    h(TeamChatStats, { p }),
-    h(TeamChatGraph, { p }),
-    h(TeamChatMessages, { p }),
+// 三段各成一张卡：统计+成员 / 角色依赖图 / 消息流（最后一张吃掉剩余高度）。
+    h('div', { style: chatStyles.card }, h(TeamChatStats, { p })),
+    h('div', { style: chatStyles.card }, h(TeamChatGraph, { p })),
+    h('div', { style: { ...chatStyles.card, ...chatStyles.cardGrow } }, h(TeamChatMessages, { p })),
   );
 }
 //#endregion

@@ -39,28 +39,32 @@ test('排序只改渲染顺序，不动统计 / @ 配对 / 翻页的口径', asy
 test('三处标题层级做强：统计行 / 成员 chip / 分区标题', async () => {
   const source = await readFile(BUNDLE, 'utf8')
 
-// 分区标题：F.sm（12px）/600 + 主题紫；不再带分隔线，靠 20px 组间距分段。
+// 分区标题：F.sm（12px）/600 + 中性灰，右侧接一条细线（分区起点的可见标记）。
 // 字号一律走 tokens.js 的 T.font 阶梯，测试钉令牌而不是字面量。
   assert.match(source, /sectionTitle: \{ fontSize: F\.sm, fontWeight: 600/)
   assert.ok(source.includes('sectionBar: {'), '分区标题要有标题行（右侧放控件）')
-  assert.ok(source.includes("h('div', { style: chatStyles.sectionBar }, h('span', { style: chatStyles.sectionTitle }, '角色依赖图'))"))
-// 顶部统计行：数字大（F.lg 15px/600 + 等宽数字）、标签小（F.xs 11px 淡灰），不用通栏下划线。
+  assert.ok(source.includes('sectionRule: {'), '分区标题要带一条延伸到右侧的细线')
+  assert.ok(source.includes("h('span', { style: chatStyles.sectionTitle }, '角色依赖图')"))
+// 依赖图标题行右侧不留细线（标题后面没有控件，留着是条没来由的横杠）。
+  assert.doesNotMatch(
+    source,
+    /'角色依赖图'\),\s*h\('span', \{ style: chatStyles\.sectionRule \}\)/,
+    '依赖图标题行不带右侧细线',
+  )
+// 顶部统计行：数字大（F.lg 15px/600 + 等宽数字）、标签小（F.xs 11px 淡灰），不再各自套小框。
   assert.match(source, /statValue: \{ fontSize: F\.lg, fontWeight: 600/)
   assert.match(source, /statLabel: \{ fontSize: F\.xs, opacity: 0\.6 \}/)
+  assert.doesNotMatch(source, /stat: \{[\s\S]{0,200}border:/, '统计项不再各自套边框')
   assert.doesNotMatch(source, /header: \{[\s\S]{0,200}borderBottom/, '统计行不再用下边界分段')
-  assert.doesNotMatch(source, /sectionBar: \{[\s\S]{0,200}borderBottom/, '标题行不再画分隔线')
-  assert.doesNotMatch(source, /header: \{ display: 'flex', gap: 14, flexWrap: 'wrap', opacity: 0\.75/, '统计行不再压到 opacity 0.75')
-// 成员 chip 不再灰底：每个成员用自己的角色色当背景、白字，形状复用名字 chip。
-  assert.match(source, /nameChip: \{[\s\S]{0,260}fontWeight: 700/)
+// 卡片化之后分区标题行自带一条下边线（它是卡内分隔，不是原来那条通栏下划线）。
+  assert.match(source, /sectionBar: \{[\s\S]{0,200}borderBottom/, '标题行在卡内以细线收口')
+// 成员 chip 改为「色点 + 名字」，角色色只留在 6px 色点上，不再铺实底。
+  assert.match(source, /nameChip: \{[\s\S]{0,260}fontWeight: 600/)
+  assert.ok(source.includes('nameDot: { width: 8, height: 8'), '角色色收成一个空心细边小圆圈')
+  assert.ok(source.includes('const rosterChipStyle = () => ({'), '成员名单复用名字 chip 的形状')
   assert.ok(
-    source.includes(
-      "const rosterChipStyle = (color) => ({ ...chipStyle(color), borderRadius: 999, padding: '2px 10px' })",
-    ),
-    '成员名单要复用名字 chip 的形状',
+    source.includes('style: rosterChipStyle(color)'),
+    '每个成员要用自己的角色色点',
   )
-  assert.ok(
-    source.includes('style: rosterChipStyle(colorOfRow(member.id, member.name))'),
-    '每个成员要用自己的角色色',
-  )
-  assert.match(source, /orderOn: \{ opacity: 1, fontWeight: 700/)
+  assert.match(source, /orderOn: \{ opacity: 1, fontWeight: 600/)
 })

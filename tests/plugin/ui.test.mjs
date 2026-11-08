@@ -195,7 +195,7 @@ const projectionOf = ({ teamId = 'lead-1', members = [], tasks = [], messages = 
   messages,
 })
 
-test('C1: 成员名单把合成的 Lead 行算进成员数，chip 写明 Lead 与阶段', async () => {
+test('C1: 成员名单把合成的 Lead 行算进成员数，chip 只写名字与阶段', async () => {
   const projection = projectionOf({ members: [{ id: 'devtest', name: '开发测试', phase: 'active' }] })
   const panel = await mountPanel({ teamLogReply: () => projection })
   try {
@@ -203,7 +203,8 @@ test('C1: 成员名单把合成的 Lead 行算进成员数，chip 写明 Lead �
     await settleAsync(panel)
     const text = panel.text()
     assert.ok(text.includes('2 成员'), `成员数没算上合成的 Lead 行：${text}`)
-    assert.ok(text.includes('lead（Lead） · active'), text)
+// 用户 2026-11-09：「括号 lead 去掉」——名单里不再挂（Lead）标记，只留名字 · 阶段。
+    assert.ok(text.includes('lead · active'), text)
     assert.ok(text.includes('开发测试 · active'), text)
   } finally {
     panel.dispose()

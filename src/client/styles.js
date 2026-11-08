@@ -191,88 +191,135 @@ const styles = {
 };
 
 const chatStyles = {
-// 间距只用三档：8（组内）/ 12（块内）/ 20（块间），圆角统一 8（胶囊除外）；线只用于分隔性质不同的东西。
-  root: { display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 14px', fontSize: F.md, minHeight: 0, flex: 1 },
-// 顶部统计行：行本身没有框，每个统计项各自一个小框，字号全程不动。
+// 间距只用三档：8（组内）/ 10（卡片之间）/ 12（卡内）；圆角 8/10；线只用于分隔性质不同的东西。
+// 宽度照抄官方输入框卡片那对变量（两侧 clearance / 卡片上限 712px），不再铺满整个面板：
+// 与设置区、裁决列表同一条竖线，左右各留一段白。
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    fontSize: F.md,
+    minHeight: 0,
+    flex: 1,
+    width: 'calc(100% - 2 * var(--dsh-composer-side-clearance, 16px))',
+    maxWidth: 'var(--dsh-composer-card-max-width, 712px)',
+    margin: '0 auto',
+    padding: '10px 0',
+    boxSizing: 'border-box',
+  },
+// 三张卡片：统计+成员 / 角色依赖图 / 消息流。卡面用主题的二级底色，浅色主题下近白、深色主题下自然抬升。
+  card: {
+    background: T.chipBg,
+    border: `1px solid ${T.borderSoft}`,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+// 消息流那张卡吃掉剩余高度，列表在卡内滚动。
+  cardGrow: { flex: '1 1 auto', display: 'flex', flexDirection: 'column', minHeight: 0 },
+// 顶部统计卡：一行里放「数字 + 竖分隔 + 成员胶囊」。
+  cardTop: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', flexWrap: 'wrap' },
+// 顶部统计行：行本身没有框，数字与标签并排；统计与成员之间一条竖分隔。
   header: {
     display: 'flex',
-    gap: 10,
+    gap: 12,
     flexWrap: 'wrap',
-    alignItems: 'baseline',
+    alignItems: 'center',
     color: 'inherit',
   },
-// 单个统计项的小框：亮灰细边 + 8px 圆角，数字 15px/600、标签 11px。
+// 单个统计项：不再各自套小框，只留「数字 + 标签」，靠留白分档。
   stat: {
     display: 'flex',
     alignItems: 'baseline',
     gap: 5,
-    border: chat.hairlineBorder,
-    borderRadius: 8,
-    padding: '2px 8px',
   },
   statValue: { fontSize: F.lg, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' },
   statLabel: { fontSize: F.xs, opacity: 0.6 },
+// 统计区与成员区之间的竖分隔（1px 竖线，高度跟文字走）。
+  headerDivider: { width: 1, height: 18, background: T.borderSoft, flex: '0 0 auto' },
 // 零散小注解（「历史未载完」「整份日志」）：最轻的一级，不抢眼。
   note: { fontSize: F.xs, opacity: 0.55 },
   roster: { display: 'flex', gap: 6, flexWrap: 'wrap' },
-// 成员名单：每个成员用自己的角色色 + 白字，形状复用 nameChip（见 chat/view.js 的 rosterChipStyle）。
-  list: { display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', minHeight: 0 },
-// 消息卡片的整圈边框 = 发送者自己的角色色；只染边框，卡片底色与文字保持原样。
-// 颜色不写在这里：它在角色的 role.json 里，由 chat/colors.js 从 /state 取、渲染时 inline 上色；
-// 样式表只留形状。
-  message: { border: '1px solid transparent', borderRadius: 8, padding: '8px 12px', transition: 'border-color 0.12s ease' },
-// 「谁 → 谁」这一行：发送者与收件人共用同一种实底白字 chip，只用颜色区分角色、不分主次，
-// 时间与状态靠右。
+// 成员名单（形状见 chat/view.js 的 rosterChipStyle）：色点 + 名字 + 阶段，不再是实底大色块。
+  list: { display: 'flex', flexDirection: 'column', gap: 0, overflowY: 'auto', minHeight: 0 },
+// 消息行：左侧 2px 发送者色轨 + 细下分隔线；右侧单独一列放时间与送达状态。
+// 颜色不写在这里：它在角色的 role.json 里，由 chat/colors.js 从 /state 取、渲染时 inline 上色。
+  message: {
+    display: 'flex',
+    alignItems: 'stretch',
+    gap: 12,
+    borderLeft: '2px solid transparent',
+    borderBottom: `1px solid ${T.borderSoft}`,
+    padding: '8px 12px 9px',
+    transition: 'background 0.12s ease',
+  },
+// 消息主体：谁 → 谁 + 正文，占满除右侧 meta 列以外的宽度。
+  msgMain: { flex: '1 1 auto', minWidth: 0 },
+// 「谁 → 谁」这一行：两边都一样重，只有色点颜色不同。
   meta: {
     display: 'flex',
-    gap: 8,
+    gap: 6,
     alignItems: 'center',
     fontSize: F.xs,
     opacity: 1,
-    marginBottom: 4,
+    marginBottom: 3,
     flexWrap: 'wrap',
   },
+// 名字 chip：不再用实底，只留「色点 + 名字」。
   nameChip: {
-    fontWeight: 700,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
+    fontWeight: 600,
     fontSize: F.sm,
-    letterSpacing: '0.02em',
-    color: chat.chipText,
-    background: chat.purple,
-    borderRadius: 6,
-    padding: '1px 7px',
+    letterSpacing: '0.01em',
   },
-  metaRight: { marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' },
-// 时间固定淡紫、不跟状态变色；送达状态保持自己的绿 / 橙 / 红（ok / pending / failed）。
-  time: { color: chat.timePurple, fontVariantNumeric: 'tabular-nums' },
+// 角色圆圈：空心环（本色描边、透明底）。8px + 1px 细边，圆度才够，7px 那档在小字号里会看着发方。
+  nameDot: { width: 8, height: 8, borderRadius: '50%', flex: '0 0 auto', boxSizing: 'border-box', background: 'transparent' },
+// 右侧 meta 列：时间在上、送达状态在下，统一右对齐。
+  metaCol: {
+    flex: '0 0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: 2,
+    fontSize: F.xs,
+  },
+// 悬停时的极浅底色：只提亮一点，不盖住角色色轨。
+  rowHover: { background: T.hoverBg },
+// 时间用最轻的一级文字色，不跟状态色走；送达状态保持自己的绿 / 橙 / 红（ok / pending / failed）。
+  time: { color: T.labelTertiary, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' },
   body: { margin: 0, fontFamily: 'inherit', fontSize: F.sm, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
   ok: { color: chat.ok },
 // 每一条的发送结果保持独立的绿 / 红，不受发送者颜色影响。
   pending: { color: chat.pending },
   failed: { color: chat.failed, fontWeight: 600 },
-// 分区标题（「角色依赖图」/「消息流」）保留标题色（主题紫 = Lead 色），
-// 但去掉了通栏下划线：分段靠 20px 组间距 + 8px 标题下间距。
-  sectionTitle: { fontSize: F.sm, fontWeight: 600, letterSpacing: '0.04em', color: chat.purple },
-// 标题行：标题在左，右侧放该区的控件（消息流的排序）。不画分隔线。
+// 分区标题（「角色依赖图」/「消息流」）：中性深灰小标 + 一条延伸到右端的细线，不再用主题紫。
+  sectionTitle: { fontSize: F.sm, fontWeight: 600, letterSpacing: '0.08em', color: T.labelSecondary, flex: '0 0 auto' },
+// 标题右侧的细线：把标题与控件隔开，同时给分区一个明确的起点。
+  sectionRule: { flex: '1 1 auto', height: 0, borderTop: `1px solid ${T.borderSoft}`, minWidth: 12 },
+// 标题行：卡内顶部一条，标题在左、右侧控件，底边一条细分隔线。
   sectionBar: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 20,
-    paddingBottom: 8,
+    gap: 10,
+    padding: '8px 12px',
+    borderBottom: `1px solid ${T.borderSoft}`,
+    flex: '0 0 auto',
   },
   orderGroup: { display: 'flex', gap: 4, marginLeft: 'auto' },
   orderBtn: {
-    padding: '1px 8px',
+    padding: '2px 8px',
     borderRadius: 6,
-    border: chat.inheritBorder,
+    border: `1px solid ${T.borderSoft}`,
     background: 'transparent',
     color: 'inherit',
     cursor: 'pointer',
     fontSize: F.xs,
-    opacity: 0.6,
+    opacity: 0.7,
   },
-  // 当前生效的那一侧（默认倒序）实心高亮，一眼看出现在按哪种顺序读。
-  orderOn: { opacity: 1, fontWeight: 700, background: chat.hoverFill },
+  // 当前生效的那一侧（默认倒序）实心高亮：深底白字，一眼看出现在按哪种顺序读。
+  orderOn: { opacity: 1, fontWeight: 600, background: T.labelPrimary, borderColor: T.labelPrimary, color: chat.chipText },
   // 用户 2026-10-13：「@统计周期 去掉 @，把整行搞好看一点、大一点点」——整行当一条工具条
   // 13px、控件加高加圆角；后来（同日）「去掉灰底，加个亮灰色框框」——填充改成描边。
   controls: {
@@ -288,7 +335,7 @@ const chatStyles = {
     background: 'transparent',
     border: 'none',
     borderRadius: 8,
-    padding: '6px 0',
+    padding: '10px 12px 2px',
   },
   // 短横线分隔符（<起始> - <结束>），用最轻的一级灰。
   controlLabel: { fontSize: F.sm, opacity: 0.6 },
@@ -315,16 +362,17 @@ const chatStyles = {
     color: 'inherit',
     maxWidth: 260,
   },
-  graph: { display: 'flex', flexDirection: 'column', gap: 4 },
-// 依赖图行：去掉每行描边，改成对齐的两列 + 等宽数字；常态与悬停都不上底色。
+  graph: { display: 'flex', flexDirection: 'column', gap: 0, padding: '2px 12px 8px' },
+// 依赖图行：对齐的两列 + 等宽数字，行间一条细线；悬停给极浅底色。
   graphRow: {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
     width: '100%',
     border: 'none',
-    borderRadius: 8,
-    padding: '5px 8px',
+    borderBottom: `1px solid ${T.borderSoft}`,
+    borderRadius: 0,
+    padding: '7px 4px',
     background: 'transparent',
     color: 'inherit',
     font: 'inherit',

@@ -3,11 +3,16 @@
 
 //#region 群聊 tab（R7.5 / R7.7 / R7.8）
 
+// 时钟：一律带日期（群聊会跨天，只给时分秒分不清是哪一天）。
+// 格式固定 yyyy-mm-dd hh:mm:ss，下拉、消息行、展开时间线共用同一口径。
 function formatClock(time) {
   if (typeof time !== 'number' || Number.isFinite(time) !== true) return '';
   const date = new Date(time);
   const pad = (value) => String(value).padStart(2, '0');
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  );
 }
 
 /** 把一条消息的 content blocks 拍平成显示文本。 */
