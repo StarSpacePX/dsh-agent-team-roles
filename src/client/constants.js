@@ -21,8 +21,9 @@ const ERROR_TTL_MS = 8000;
 /** 角色 id（team-select）→ id 框里显示的裸成员名（select）。
  * 抽成函数是因为同步 effect 与「用户是否改过 id」那处判断必须用同一条规则。 */
 const nakedMemberName = (id, prefix) => (id.startsWith(prefix) ? id.slice(prefix.length) : id);
-/** 单个请求最多等多久。没有超时，一条半死的连接（socket 不回包）会让面板永远停在「正在读取角色…」。 */
-const REQUEST_TIMEOUT_MS = 15000;
+/** 单个请求最多等多久。没有超时，一条半死的连接（socket 不回包）会让面板永远停在「正在读取角色…」。
+ * 开关智能体团队要宿主写 profile 并激活组合包，几十秒才回包，按 15 秒掐断只会抛 abort。 */
+const REQUEST_TIMEOUT_MS = 180000;
 /** 幂等请求（GET/HEAD）的总尝试次数：3 = 首试 + 2 次重试。
  * 只有网络错误与 5xx 可重试；4xx 是服务端明确拒绝，非幂等的 POST 更不能替用户重放变更。 */
 const GET_ATTEMPTS = 3;
